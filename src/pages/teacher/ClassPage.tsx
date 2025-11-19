@@ -67,6 +67,11 @@ export const ClassPage: React.FC = () => {
   });
   const [attachments, setAttachments] = useState<File[]>([]);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [isEditingDescription, setIsEditingDescription] = useState(false);
+  const [editDescription, setEditDescription] = useState('');
+  const [isSavingDescription, setIsSavingDescription] = useState(false);
+  const textareaRef = React.useRef<HTMLTextAreaElement | null>(null);
+  const [isCancelPressed, setIsCancelPressed] = useState(false);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -84,6 +89,52 @@ export const ClassPage: React.FC = () => {
       loadClassData();
     }
   }, [classId]);
+
+  useEffect(() => {
+    if (classDetails) {
+      setEditDescription(classDetails.description || '');
+    }
+  }, [classDetails]);
+
+  // Focus and adjust height when entering edit mode
+  useEffect(() => {
+    if (isEditingDescription) {
+      const raf = requestAnimationFrame(() => {
+        const ta = textareaRef.current;
+        if (ta) {
+          ta.focus();
+          // move cursor to end
+          const len = ta.value.length;
+          ta.setSelectionRange(len, len);
+          // adjust height
+          ta.style.height = 'auto';
+          ta.style.height = `${ta.scrollHeight}px`;
+          const words = ta.value.trim().split(/\s+/).filter(Boolean).length;
+          if (words > 50) {
+            ta.style.minHeight = '180px';
+          } else {
+            ta.style.minHeight = '';
+          }
+        }
+      });
+      return () => cancelAnimationFrame(raf);
+    }
+  }, [isEditingDescription]);
+
+  const handleDescriptionInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setEditDescription(e.target.value);
+    const ta = textareaRef.current;
+    if (!ta) return;
+    // auto-resize
+    ta.style.height = 'auto';
+    ta.style.height = `${ta.scrollHeight}px`;
+    const words = e.target.value.trim().split(/\s+/).filter(Boolean).length;
+    if (words > 50) {
+      ta.style.minHeight = '180px';
+    } else {
+      ta.style.minHeight = '';
+    }
+  };
 
   const loadClassData = async () => {
     try {
@@ -303,7 +354,82 @@ export const ClassPage: React.FC = () => {
             {classDetails.section && (
               <p className="text-xl text-white/90 mb-4">{classDetails.section}</p>
             )}
-            <p className="text-white/80 mb-4">{classDetails.description}</p>
+              <div className="mb-4">
+                {!isEditingDescription ? (
+                  <div className="flex items-start gap-3">
+                    <p className="text-white/80">{classDetails.description}</p>
+                    {profile?.role === 'teacher' && profile?.id === classDetails.teacher_id && (
+                      <button
+                        onClick={() => setIsEditingDescription(true)}
+                        className="ml-2 text-white/90 hover:text-white p-1 rounded-md transition-colors"
+                        title="Edit description"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536M4 13.5V20h6.5L20.873 9.627a2 2 0 000-2.828L18.2 3.027a2 2 0 00-2.828 0L4 14.4z" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="w-full">
+                    <Textarea
+                      ref={textareaRef}
+                      value={editDescription}
+                      onChange={handleDescriptionInput}
+                      rows={4}
+                      className="w-full text-black caret-black bg-white placeholder-gray-500"
+                    />
+                    <div className="mt-2 flex items-center gap-2">
+                      <Button
+                        onClick={async () => {
+                          try {
+                            setIsSavingDescription(true);
+                            const { data, error } = await supabase
+                              .from('classes')
+                              .update({ description: editDescription })
+                              .eq('id', classId)
+                              .select()
+                              .single();
+
+                            if (error) throw error;
+                            if (data) {
+                              setClassDetails(data as any);
+                            }
+                            setIsEditingDescription(false);
+                            setSuccess('Description updated');
+                            setTimeout(() => setSuccess(''), 3000);
+                          } catch (err) {
+                            console.error('Failed to update description', err);
+                            setError(err instanceof Error ? err.message : 'Failed to update description');
+                          } finally {
+                            setIsSavingDescription(false);
+                          }
+                        }}
+                        isLoading={isSavingDescription}
+                        disabled={isSavingDescription}
+                      >
+                        Save
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setIsEditingDescription(false);
+                          setEditDescription(classDetails.description || '');
+                          setError('');
+                        }}
+                        disabled={isSavingDescription}
+                        onPointerDown={() => setIsCancelPressed(true)}
+                        onPointerUp={() => setIsCancelPressed(false)}
+                        onPointerCancel={() => setIsCancelPressed(false)}
+                        onPointerLeave={() => setIsCancelPressed(false)}
+                        className={`${isCancelPressed ? 'bg-white text-gray-900 border-gray-200' : ''}`}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
             <div className="inline-flex items-center bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
               <span className="text-sm text-white/80 mr-2">Class Code:</span>
               <span className="text-xl font-mono font-bold">{classDetails.code}</span>
@@ -485,9 +611,9 @@ export const ClassPage: React.FC = () => {
                         {profile?.full_name?.charAt(0).toUpperCase() || 'T'}
                       </div>
                       <div className="ml-3">
-                        <p className="font-medium text-gray-900">{profile?.full_name || 'Teacher'}</p>
-                        <p className="text-sm text-gray-500">{profile?.email}</p>
-                      </div>
+                          <p className="font-medium text-gray-900">{profile?.full_name || 'Teacher'}</p>
+                          <p className="text-sm text-gray-500">{(profile as any)?.email}</p>
+                        </div>
                     </div>
                   </div>
                   <div>
