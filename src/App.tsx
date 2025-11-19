@@ -1,8 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
-import { ProtectedRoute } from './components/ProtectedRoute';
-import { RoleGuard } from './components/RoleGuard';
+import { Layout, ProtectedRoute, RoleGuard, Chatbot } from './components';
 
 // Pages
 import { HomePage } from './pages/HomePage';
@@ -32,6 +31,7 @@ function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <Chatbot />
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<HomePage />} />
