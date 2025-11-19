@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components';
 
@@ -62,13 +62,19 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               </Link>
               <div className="ml-10 flex space-x-1">
                 {getNavigationItems().map((item) => (
-                  <Link
+                  <NavLink
                     key={item.path}
                     to={item.path}
-                    className="text-gray-700 hover:text-primary-600 hover:bg-primary-50 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200"
+                    className={({ isActive }) =>
+                      `px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                        isActive
+                          ? 'text-primary-600 bg-primary-50'
+                          : 'text-gray-700 hover:text-primary-600 hover:bg-primary-50'
+                      }`
+                    }
                   >
                     {item.label}
-                  </Link>
+                  </NavLink>
                 ))}
               </div>
             </div>
