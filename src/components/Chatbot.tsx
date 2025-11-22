@@ -1,6 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Button } from './Button';
-import { Input } from './Input';
 
 interface Message {
   id: string;
