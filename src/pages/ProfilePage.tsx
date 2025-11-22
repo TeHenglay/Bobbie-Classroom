@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Card, Button, Input, Spinner } from '../components';
+import { Card, Button, Spinner } from '../components';
 import { Layout } from '../components/Layout';
 
 export const ProfilePage: React.FC = () => {
   const { user, profile, refreshProfile } = useAuth();
-  const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
