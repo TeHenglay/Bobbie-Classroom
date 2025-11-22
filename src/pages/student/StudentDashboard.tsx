@@ -6,10 +6,25 @@ import type { Class, Assignment, ClassMember } from '../../types';
 import { Card, Spinner, Button } from '../../components';
 import { Layout } from '../../components/Layout';
 
+interface Submission {
+  id: string;
+  assignment_id: string;
+  student_id: string;
+  score: number | null;
+  feedback: string | null;
+  status: string;
+  submitted_at: string;
+}
+
+interface GradedAssignment extends Assignment {
+  submission?: Submission;
+}
+
 export const StudentDashboard: React.FC = () => {
   const { user } = useAuth();
   const [classes, setClasses] = useState<Class[]>([]);
   const [upcomingAssignments, setUpcomingAssignments] = useState<Assignment[]>([]);
+  const [gradedAssignments, setGradedAssignments] = useState<GradedAssignment[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -43,6 +58,32 @@ export const StudentDashboard: React.FC = () => {
 
           if (assignmentData) {
             setUpcomingAssignments(assignmentData);
+          }
+
+          // Load graded assignments
+          const { data: submissionsData } = await supabase
+            .from('submissions')
+            .select('*')
+            .eq('student_id', user.id)
+            .eq('status', 'graded')
+            .order('submitted_at', { ascending: false })
+            .limit(5);
+
+          if (submissionsData && submissionsData.length > 0) {
+            // Get assignment details for graded submissions
+            const assignmentIds = submissionsData.map(s => s.assignment_id);
+            const { data: gradedAssignmentData } = await supabase
+              .from('assignments')
+              .select('*, class:classes(*)')
+              .in('id', assignmentIds);
+
+            if (gradedAssignmentData) {
+              const gradedWithSubmissions = gradedAssignmentData.map(assignment => ({
+                ...assignment,
+                submission: submissionsData.find(s => s.assignment_id === assignment.id)
+              }));
+              setGradedAssignments(gradedWithSubmissions);
+            }
           }
         }
       }
@@ -101,6 +142,49 @@ export const StudentDashboard: React.FC = () => {
             </div>
           </Card>
         </div>
+
+        {/* Graded Assignments */}
+        {gradedAssignments.length > 0 && (
+          <Card title="✅ Recently Graded" className="animate-slide-in">
+            <div className="space-y-3">
+              {gradedAssignments.map((assignment) => (
+                <Link
+                  key={assignment.id}
+                  to={`/student/class/${assignment.class_id}/assignment/${assignment.id}`}
+                  className="block p-5 border-2 border-green-100 bg-green-50/50 rounded-xl hover:border-green-300 hover:bg-green-50 transition-all duration-200 group"
+                >
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-900 group-hover:text-green-600 transition-colors">
+                        {assignment.title}
+                      </h3>
+                      <p className="text-sm text-gray-600 mt-1 flex items-center">
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                        {assignment.class?.name}
+                      </p>
+                    </div>
+                    <div className="text-right ml-4">
+                      <div className="flex items-baseline space-x-1">
+                        <span className="text-3xl font-bold text-green-600">{assignment.submission?.score}</span>
+                        <span className="text-lg text-gray-600">/ {assignment.max_score}</span>
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {Math.round((assignment.submission?.score || 0) / assignment.max_score * 100)}%
+                      </div>
+                    </div>
+                  </div>
+                  {assignment.submission?.feedback && (
+                    <div className="mt-3 p-3 bg-white rounded-lg border border-green-200">
+                      <p className="text-sm text-gray-700 line-clamp-2">{assignment.submission.feedback}</p>
+                    </div>
+                  )}
+                </Link>
+              ))}
+            </div>
+          </Card>
+        )}
 
         {/* Upcoming Assignments */}
         <Card title="📝 Upcoming Assignments" className="animate-slide-in">
