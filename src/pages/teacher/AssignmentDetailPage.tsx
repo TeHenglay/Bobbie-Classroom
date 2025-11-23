@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { Card, Button, Spinner } from '../../components';
 import { Layout } from '../../components/Layout';
@@ -43,6 +43,7 @@ interface ClassMember {
 export const AssignmentDetailPage: React.FC = () => {
   const { classId, assignmentId } = useParams<{ classId: string; assignmentId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [students, setStudents] = useState<ClassMember[]>([]);
@@ -50,6 +51,11 @@ export const AssignmentDetailPage: React.FC = () => {
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
   const [gradeForm, setGradeForm] = useState({ grade: 0, feedback: '' });
   const [saving, setSaving] = useState(false);
+
+  // Determine where we came from
+  const fromAssignments = location.state?.from === 'assignments';
+  const backPath = fromAssignments ? '/teacher/assignments' : `/teacher/class/${classId}`;
+  const backLabel = fromAssignments ? 'Back to Assignments' : 'Back to Class';
 
   useEffect(() => {
     if (assignmentId && classId) {
@@ -192,8 +198,8 @@ export const AssignmentDetailPage: React.FC = () => {
       <Layout>
         <div className="text-center py-12">
           <h2 className="text-2xl font-bold text-gray-900">Assignment not found</h2>
-          <Button onClick={() => navigate(`/teacher/class/${classId}`)} className="mt-4">
-            Back to Class
+          <Button onClick={() => navigate(backPath)} className="mt-4">
+            {backLabel}
           </Button>
         </div>
       </Layout>
@@ -211,13 +217,13 @@ export const AssignmentDetailPage: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
           <div className="p-6">
             <Link 
-              to={`/teacher/class/${classId}`}
+              to={backPath}
               className="text-primary-600 hover:text-primary-700 mb-4 inline-flex items-center text-sm font-medium"
             >
               <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
-              Back to Class
+              {backLabel}
             </Link>
             
             <div className="flex items-start justify-between">

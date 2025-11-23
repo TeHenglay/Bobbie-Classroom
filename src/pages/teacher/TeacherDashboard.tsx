@@ -2,18 +2,29 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useSearch } from '../../contexts/SearchContext';
 import type { Class } from '../../types';
 import { Card, Spinner, Button, Modal, Input, Textarea } from '../../components';
 import { Layout } from '../../components/Layout';
 
+interface ClassWithStudents extends Class {
+  studentCount?: number;
+  students?: Array<{
+    full_name: string;
+    avatar_url?: string;
+  }>;
+}
+
 export const TeacherDashboard: React.FC = () => {
   const { user } = useAuth();
-  const [classes, setClasses] = useState<Class[]>([]);
+  const { searchTerm } = useSearch();
+  const [classes, setClasses] = useState<ClassWithStudents[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [teacherName, setTeacherName] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     section: '',
@@ -24,6 +35,12 @@ export const TeacherDashboard: React.FC = () => {
     loadClasses();
   }, [user]);
 
+  useEffect(() => {
+    const handleOpenModal = () => setShowCreateModal(true);
+    window.addEventListener('openCreateClassModal', handleOpenModal);
+    return () => window.removeEventListener('openCreateClassModal', handleOpenModal);
+  }, []);
+
   const loadClasses = async () => {
     if (!user) {
       console.log('No user found, skipping load');
@@ -32,6 +49,17 @@ export const TeacherDashboard: React.FC = () => {
 
     try {
       console.log('Loading classes for user:', user.id);
+      
+      // Fetch teacher profile
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', user.id)
+        .single();
+      
+      if (profileData) {
+        setTeacherName(profileData.full_name);
+      }
       
       const { data, error } = await supabase
         .from('classes')
@@ -48,7 +76,36 @@ export const TeacherDashboard: React.FC = () => {
 
       if (data) {
         console.log('Setting classes:', data);
-        setClasses(data);
+        
+        // Fetch student count and avatars for each class
+        const classesWithStudents = await Promise.all(
+          data.map(async (classItem) => {
+            const { data: members } = await supabase
+              .from('class_members')
+              .select(`
+                student_id,
+                profiles:student_id (
+                  full_name,
+                  avatar_url
+                )
+              `)
+              .eq('class_id', classItem.id)
+              .limit(3);
+            
+            const { count } = await supabase
+              .from('class_members')
+              .select('*', { count: 'exact', head: true })
+              .eq('class_id', classItem.id);
+            
+            return {
+              ...classItem,
+              studentCount: count || 0,
+              students: members?.map((m: any) => m.profiles).filter(Boolean) || []
+            };
+          })
+        );
+        
+        setClasses(classesWithStudents);
       }
     } catch (error) {
       console.error('Error loading classes:', error);
@@ -144,31 +201,9 @@ export const TeacherDashboard: React.FC = () => {
           </div>
         )}
 
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">My Classes</h1>
-            <p className="mt-2 text-gray-600">Manage your classes and assignments</p>
-          </div>
-          <Button onClick={() => setShowCreateModal(true)}>
-            Create Class
-          </Button>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card>
-            <div className="flex items-center">
-              <div className="p-3 bg-primary-100 rounded-lg">
-                <svg className="w-8 h-8 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                </svg>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Classes</p>
-                <p className="text-2xl font-bold text-gray-900">{classes.length}</p>
-              </div>
-            </div>
-          </Card>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">My Classes</h1>
+          <p className="mt-2 text-gray-600">Manage your classes and assignments</p>
         </div>
 
         {/* Classes Grid */}
@@ -180,40 +215,120 @@ export const TeacherDashboard: React.FC = () => {
               </svg>
               <h3 className="mt-2 text-sm font-medium text-gray-900">No classes</h3>
               <p className="mt-1 text-sm text-gray-500">Get started by creating a new class.</p>
-              <div className="mt-6">
-                <Button onClick={() => setShowCreateModal(true)}>
-                  Create Class
-                </Button>
-              </div>
             </div>
           </Card>
-        ) : (
+        ) : (() => {
+          const filteredClasses = classes.filter(classItem =>
+            classItem.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            classItem.section?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            classItem.code.toLowerCase().includes(searchTerm.toLowerCase())
+          );
+          
+          return filteredClasses.length === 0 ? (
+            <Card>
+              <div className="text-center py-12">
+                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <h3 className="mt-2 text-sm font-medium text-gray-900">No results found</h3>
+                <p className="mt-1 text-sm text-gray-500">Try searching with different keywords.</p>
+              </div>
+            </Card>
+          ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {classes.map((classItem) => (
-              <Link
-                key={classItem.id}
-                to={`/teacher/class/${classItem.id}`}
-                className="block"
-              >
-                <Card className="hover:shadow-lg transition-shadow h-full">
-                  <div className="flex flex-col h-full">
-                    <h3 className="text-xl font-semibold text-gray-900">{classItem.name}</h3>
-                    {classItem.section && (
-                      <p className="text-sm text-gray-600 mt-1">Section: {classItem.section}</p>
-                    )}
-                    <p className="text-sm text-gray-500 mt-3 flex-grow line-clamp-3">
-                      {classItem.description}
-                    </p>
-                    <div className="mt-4 pt-4 border-t border-gray-200">
-                      <p className="text-xs text-gray-500">Class Code:</p>
-                      <p className="text-lg font-mono font-semibold text-primary-600">{classItem.code}</p>
+            {filteredClasses.map((classItem, index) => {
+              const colors = [
+                { bg: 'bg-red-600', border: 'border-red-600' },
+                { bg: 'bg-indigo-600', border: 'border-indigo-600' },
+                { bg: 'bg-blue-600', border: 'border-blue-600' },
+                { bg: 'bg-green-600', border: 'border-green-600' },
+                { bg: 'bg-purple-600', border: 'border-purple-600' },
+                { bg: 'bg-pink-600', border: 'border-pink-600' }
+              ];
+              // Use class ID hash for consistent color across pages
+              const hash = classItem.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+              const color = colors[hash % colors.length];
+              
+              return (
+                <Link
+                  key={classItem.id}
+                  to={`/teacher/class/${classItem.id}`}
+                  className="block group"
+                >
+                  <div className={`${color.bg} rounded-2xl shadow-md hover:shadow-xl transition-all duration-200 overflow-hidden border ${color.border}`}>
+                    {/* Header with background color */}
+                    <div className="px-6 py-4 text-white relative">
+                      <h3 className="font-bold text-lg mb-1">{classItem.name}</h3>
+                      <p className="text-sm opacity-90">{classItem.section || "Let's Start"}</p>
+                      {/* Decorative icon */}
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-20">
+                        <svg className="w-16 h-16" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
+                        </svg>
+                      </div>
+                    </div>
+                    
+                    {/* Content */}
+                    <div className="px-6 py-4 bg-white bg-opacity-95">
+                      {/* Teacher Info */}
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className={`w-8 h-8 rounded-full ${color.bg} flex items-center justify-center text-white font-semibold text-sm`}>
+                          {teacherName?.charAt(0).toUpperCase() || 'T'}
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm text-gray-600">Teacher: <span className="font-medium text-gray-900">{teacherName || 'You'}</span></p>
+                        </div>
+                        <div className={`w-10 h-10 ${color.bg} rounded-full flex items-center justify-center text-white text-xs font-bold`}>
+                          {index + 1}
+                        </div>
+                      </div>
+                      
+                      {/* Class Code */}
+                      <div className="pt-3 border-t border-gray-200">
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-xs text-gray-500">Code: <span className="font-mono font-semibold text-gray-900">{classItem.code}</span></p>
+                        </div>
+                        
+                        {/* Student Avatars */}
+                        <div className="flex items-center gap-2">
+                          {classItem.students && classItem.students.length > 0 ? (
+                            <>
+                              <div className="flex -space-x-2">
+                                {classItem.students.slice(0, 3).map((student, idx) => (
+                                  student.avatar_url ? (
+                                    <img
+                                      key={idx}
+                                      src={student.avatar_url}
+                                      alt={student.full_name}
+                                      className="w-8 h-8 rounded-full border-2 border-white object-cover"
+                                    />
+                                  ) : (
+                                    <div
+                                      key={idx}
+                                      className={`w-8 h-8 rounded-full border-2 border-white ${color.bg} flex items-center justify-center text-white text-xs font-semibold`}
+                                    >
+                                      {student.full_name?.charAt(0).toUpperCase() || 'S'}
+                                    </div>
+                                  )
+                                ))}
+                              </div>
+                              <span className="text-xs text-gray-600">
+                                {classItem.studentCount === 1 ? '1 student' : `${classItem.studentCount} students`}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-xs text-gray-500 italic">No students yet</span>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </Card>
-              </Link>
-            ))}
+                </Link>
+              );
+            })}
           </div>
-        )}
+          );
+        })()}
       </div>
 
       {/* Create Class Modal */}

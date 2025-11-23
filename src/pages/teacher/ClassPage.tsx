@@ -68,6 +68,21 @@ export const ClassPage: React.FC = () => {
   const [attachments, setAttachments] = useState<File[]>([]);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
+  // Get color based on class ID (consistent with dashboard)
+  const getClassColor = (classId: string) => {
+    const colors = [
+      { from: 'from-red-600', to: 'to-red-700', bg: 'bg-red-600' },
+      { from: 'from-indigo-600', to: 'to-indigo-700', bg: 'bg-indigo-600' },
+      { from: 'from-blue-600', to: 'to-blue-700', bg: 'bg-blue-600' },
+      { from: 'from-green-600', to: 'to-green-700', bg: 'bg-green-600' },
+      { from: 'from-purple-600', to: 'to-purple-700', bg: 'bg-purple-600' },
+      { from: 'from-pink-600', to: 'to-pink-700', bg: 'bg-pink-600' }
+    ];
+    // Use a simple hash of the classId for consistency
+    const hash = classId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return colors[hash % colors.length];
+  };
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const files = Array.from(e.target.files);
@@ -77,6 +92,18 @@ export const ClassPage: React.FC = () => {
 
   const removeAttachment = (index: number) => {
     setAttachments(attachments.filter((_, i) => i !== index));
+  };
+
+  const copyClassCode = async () => {
+    if (classDetails?.code) {
+      try {
+        await navigator.clipboard.writeText(classDetails.code);
+        setSuccess('Class code copied to clipboard!');
+        setTimeout(() => setSuccess(''), 3000);
+      } catch (err) {
+        setError('Failed to copy class code');
+      }
+    }
   };
 
   useEffect(() => {
@@ -291,7 +318,7 @@ export const ClassPage: React.FC = () => {
         )}
 
         {/* Class Header */}
-        <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl shadow-lg overflow-hidden">
+        <div className={`bg-gradient-to-r ${classDetails.id ? getClassColor(classDetails.id).from : 'from-primary-600'} ${classDetails.id ? getClassColor(classDetails.id).to : 'to-primary-700'} rounded-xl shadow-lg overflow-hidden`}>
           <div className="p-8 text-white">
             <Link to="/teacher/dashboard" className="text-white/80 hover:text-white mb-4 inline-flex items-center">
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -524,9 +551,12 @@ export const ClassPage: React.FC = () => {
           <div className="space-y-6">
             <Card className="p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Class Code</h3>
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <p className="text-3xl font-mono font-bold text-primary-600 mb-2">{classDetails.code}</p>
-                <p className="text-sm text-gray-600">Share this code with students</p>
+              <div 
+                onClick={copyClassCode}
+                className={`text-center p-4 ${classDetails.id ? getClassColor(classDetails.id).bg : 'bg-primary-600'} rounded-lg cursor-pointer hover:opacity-90 transition-opacity`}
+              >
+                <p className="text-3xl font-mono font-bold text-white mb-2">{classDetails.code}</p>
+                <p className="text-sm text-white/90">Click to copy</p>
               </div>
             </Card>
 

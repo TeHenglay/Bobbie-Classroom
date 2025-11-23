@@ -68,6 +68,34 @@ export const StudentClassPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
+
+  // Get color based on class ID (consistent with dashboard)
+  const getClassColor = (classId: string) => {
+    const colors = [
+      { from: 'from-red-600', to: 'to-red-700', bg: 'bg-red-600' },
+      { from: 'from-indigo-600', to: 'to-indigo-700', bg: 'bg-indigo-600' },
+      { from: 'from-blue-600', to: 'to-blue-700', bg: 'bg-blue-600' },
+      { from: 'from-green-600', to: 'to-green-700', bg: 'bg-green-600' },
+      { from: 'from-purple-600', to: 'to-purple-700', bg: 'bg-purple-600' },
+      { from: 'from-pink-600', to: 'to-pink-700', bg: 'bg-pink-600' }
+    ];
+    // Use a simple hash of the classId for consistency
+    const hash = classId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return colors[hash % colors.length];
+  };
+
+  const copyClassCode = async () => {
+    if (classDetails?.code) {
+      try {
+        await navigator.clipboard.writeText(classDetails.code);
+        setCopySuccess(true);
+        setTimeout(() => setCopySuccess(false), 3000);
+      } catch (err) {
+        console.error('Failed to copy class code');
+      }
+    }
+  };
 
   useEffect(() => {
     if (classId) {
@@ -241,7 +269,7 @@ export const StudentClassPage: React.FC = () => {
     <Layout>
       <div className="space-y-6">
         {/* Class Header */}
-        <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl shadow-lg overflow-hidden">
+        <div className={`bg-gradient-to-r ${classDetails.id ? getClassColor(classDetails.id).from : 'from-primary-600'} ${classDetails.id ? getClassColor(classDetails.id).to : 'to-primary-700'} rounded-xl shadow-lg overflow-hidden`}>
           <div className="p-8 text-white">
             <div className="flex justify-between items-start mb-4">
               <Link to="/student/dashboard" className="text-white/80 hover:text-white inline-flex items-center">
@@ -489,8 +517,12 @@ export const StudentClassPage: React.FC = () => {
           <div className="space-y-6">
             <Card className="p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Class Code</h3>
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <p className="text-3xl font-mono font-bold text-primary-600 mb-2">{classDetails.code}</p>
+              <div 
+                onClick={copyClassCode}
+                className={`text-center p-4 ${classDetails.id ? getClassColor(classDetails.id).bg : 'bg-primary-600'} rounded-lg cursor-pointer hover:opacity-90 transition-opacity`}
+              >
+                <p className="text-3xl font-mono font-bold text-white mb-2">{classDetails.code}</p>
+                <p className="text-sm text-white/90">{copySuccess ? '✓ Copied!' : 'Click to copy'}</p>
               </div>
             </Card>
 
