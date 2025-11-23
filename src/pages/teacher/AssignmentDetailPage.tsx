@@ -18,10 +18,10 @@ interface Submission {
   id: string;
   assignment_id: string;
   student_id: string;
-  submission_text: string;
-  submission_file_url: string | null;
+  content: string;
+  file_url: string | null;
   submitted_at: string;
-  grade: number | null;
+  score: number | null;
   feedback: string | null;
   status: 'submitted' | 'graded' | 'late';
   student: {
@@ -48,7 +48,7 @@ export const AssignmentDetailPage: React.FC = () => {
   const [students, setStudents] = useState<ClassMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
-  const [gradeForm, setGradeForm] = useState({ grade: 0, feedback: '' });
+  const [gradeForm, setGradeForm] = useState({ score: 0, feedback: '' });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -129,7 +129,7 @@ export const AssignmentDetailPage: React.FC = () => {
       const { error } = await supabase
         .from('submissions')
         .update({
-          grade: gradeForm.grade,
+          score: gradeForm.score,
           feedback: gradeForm.feedback,
           status: 'graded'
         })
@@ -139,7 +139,7 @@ export const AssignmentDetailPage: React.FC = () => {
 
       await loadAssignmentData();
       setSelectedSubmission(null);
-      setGradeForm({ grade: 0, feedback: '' });
+      setGradeForm({ score: 0, feedback: '' });
     } catch (error) {
       console.error('Error grading submission:', error);
     } finally {
@@ -290,7 +290,7 @@ export const AssignmentDetailPage: React.FC = () => {
                       if (submission) {
                         setSelectedSubmission(submission);
                         setGradeForm({ 
-                          grade: submission.grade || 0, 
+                          score: submission.score || 0, 
                           feedback: submission.feedback || '' 
                         });
                       }
@@ -308,9 +308,9 @@ export const AssignmentDetailPage: React.FC = () => {
                       </div>
                       
                       <div className="flex items-center space-x-4">
-                        {submission?.grade !== null && (
+                        {submission?.score !== null && (
                           <div className="text-right mr-4">
-                            <div className="text-2xl font-bold text-primary-600">{submission.grade}</div>
+                            <div className="text-2xl font-bold text-primary-600">{submission.score}</div>
                             <div className="text-xs text-gray-500">/ {assignment.max_score}</div>
                           </div>
                         )}
@@ -343,7 +343,7 @@ export const AssignmentDetailPage: React.FC = () => {
               <button
                 onClick={() => {
                   setSelectedSubmission(null);
-                  setGradeForm({ grade: 0, feedback: '' });
+                  setGradeForm({ score: 0, feedback: '' });
                 }}
                 className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100"
               >
@@ -359,8 +359,8 @@ export const AssignmentDetailPage: React.FC = () => {
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-3">Student's Answer</h3>
                 <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 min-h-[200px]">
-                  {selectedSubmission.submission_text ? (
-                    <p className="text-gray-700 whitespace-pre-wrap">{selectedSubmission.submission_text}</p>
+                  {selectedSubmission.content ? (
+                    <p className="text-gray-700 whitespace-pre-wrap">{selectedSubmission.content}</p>
                   ) : (
                     <p className="text-gray-400 italic">No answer provided</p>
                   )}
@@ -377,22 +377,41 @@ export const AssignmentDetailPage: React.FC = () => {
               </div>
 
               {/* File Attachment */}
-              {selectedSubmission.submission_file_url && (
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Attachment</h3>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Attachment</h3>
+                {selectedSubmission.file_url ? (
                   <a
-                    href={selectedSubmission.submission_file_url}
+                    href={selectedSubmission.file_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center space-x-3 p-4 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors"
+                    className="flex items-center justify-between space-x-3 p-4 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors group"
                   >
-                    <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 bg-blue-100 rounded-lg">
+                        <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <span className="text-blue-600 font-medium block">Student's File</span>
+                        <span className="text-blue-500 text-sm">Click to view or download</span>
+                      </div>
+                    </div>
+                    <svg className="w-5 h-5 text-blue-600 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                     </svg>
-                    <span className="text-blue-600 font-medium">View Attachment</span>
                   </a>
-                </div>
-              )}
+                ) : (
+                  <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="p-2 bg-gray-100 rounded-lg">
+                      <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <span className="text-gray-500 italic">No file attachment</span>
+                  </div>
+                )}
+              </div>
 
               {/* Grading Section */}
               <div className="border-t pt-6">
@@ -406,8 +425,8 @@ export const AssignmentDetailPage: React.FC = () => {
                     </label>
                     <input
                       type="number"
-                      value={gradeForm.grade}
-                      onChange={(e) => setGradeForm({ ...gradeForm, grade: parseInt(e.target.value) || 0 })}
+                      value={gradeForm.score}
+                      onChange={(e) => setGradeForm({ ...gradeForm, score: parseInt(e.target.value) || 0 })}
                       min="0"
                       max={assignment.max_score}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-lg"
@@ -437,7 +456,7 @@ export const AssignmentDetailPage: React.FC = () => {
                 variant="outline"
                 onClick={() => {
                   setSelectedSubmission(null);
-                  setGradeForm({ grade: 0, feedback: '' });
+                  setGradeForm({ score: 0, feedback: '' });
                 }}
                 disabled={saving}
               >

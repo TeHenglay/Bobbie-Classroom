@@ -210,6 +210,8 @@ export const RegisterPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [role, setRole] = useState<UserRole>('student');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);

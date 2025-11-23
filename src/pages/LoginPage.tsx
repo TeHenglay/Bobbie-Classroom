@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { signIn } = useAuth();
@@ -64,15 +65,40 @@ export const LoginPage: React.FC = () => {
               placeholder="you@example.com"
             />
 
-            <Input
-              label="Password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-              placeholder="Enter your password"
-            />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                  placeholder="Enter your password"
+                  className="w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 pr-10"
+                />
+                <div className="absolute inset-y-0 right-3 flex items-center">
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((s) => !s)}
+                    className="p-1 text-gray-500 hover:text-gray-700 rounded-md"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    title={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19C7 19 3.73 16.11 1.5 12c.832-1.565 2.02-3 3.5-4.145M6.5 6.5L3 3m0 0l18 18-3.5 3.5M10.94 10.94A3 3 0 0113.06 13.06" />
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
 
             {error && (
               <div className="text-red-600 text-sm bg-red-50 border border-red-200 p-4 rounded-lg flex items-start animate-slide-in">
