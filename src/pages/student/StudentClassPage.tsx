@@ -4,6 +4,8 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { Card, Button, Spinner } from '../../components';
 import { Layout } from '../../components/Layout';
+import { div, h1 } from 'framer-motion/client';
+import AssignmentCard from '@/components/AssignmentCard';
 
 interface ClassDetails {
   id: string;
@@ -64,7 +66,8 @@ export const StudentClassPage: React.FC = () => {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [classMembers, setClassMembers] = useState<ClassMember[]>([]);
   const [teacher, setTeacher] = useState<TeacherProfile | null>(null);
-  const [activeTab, setActiveTab] = useState<'stream' | 'classwork' | 'people'>('stream');
+  const [activeTab, setActiveTab] = useState<'stream' | 'assignment' | 'people'>('stream');
+  const [assignmentTab, setAssignmentTab] = useState<'Up Coming' | 'Past Due' | 'Completed'>('Up Coming');
   const [loading, setLoading] = useState(true);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [leaving, setLeaving] = useState(false);
@@ -314,240 +317,171 @@ export const StudentClassPage: React.FC = () => {
               Stream
             </button>
             <button
-              onClick={() => setActiveTab('classwork')}
+              onClick={() => setActiveTab('assignment')}
               className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === 'classwork'
+                activeTab === 'assignment'
                   ? 'border-primary-600 text-primary-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              Classwork
-            </button>
-            <button
-              onClick={() => setActiveTab('people')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === 'people'
-                  ? 'border-primary-600 text-primary-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              People
+              Assignment
             </button>
           </nav>
         </div>
 
         {/* Tab Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
+          <div className="lg:col-span-3 space-y-6">
             {/* Stream Tab */}
             {activeTab === 'stream' && (
-              <>
-                {/* Upcoming Assignments */}
-                {assignments.length > 0 && (
-                  <Card className="p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Upcoming</h3>
-                    <div className="space-y-3">
-                      {assignments.slice(0, 3).map((assignment) => {
-                        const status = getSubmissionStatus(assignment.id);
-                        return (
-                          <Link
-                            key={assignment.id}
-                            to={`/student/class/${classId}/assignment/${assignment.id}`}
-                            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                          >
-                            <div className="flex items-center flex-1">
-                              <div className="p-2 bg-primary-100 rounded-lg mr-3">
-                                <svg className="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                </svg>
-                              </div>
-                              <div>
-                                <p className="font-medium text-gray-900">{assignment.title}</p>
-                                <p className="text-sm text-gray-500">Due {formatDate(assignment.due_date)}</p>
-                              </div>
-                            </div>
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium bg-${status.color}-100 text-${status.color}-700`}>
-                              {status.status}
-                            </span>
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  </Card>
-                )}
 
-                {/* Announcements */}
-                <Card className="p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Announcements</h3>
-                  {announcements.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
-                      <svg className="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
-                      </svg>
-                      <p>No announcements yet</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {announcements.map((announcement) => (
-                        <div key={announcement.id} className="border-l-4 border-primary-600 pl-4 py-2">
-                          <h4 className="font-semibold text-gray-900 mb-1">{announcement.title}</h4>
-                          <p className="text-gray-600 mb-2">{announcement.message}</p>
-                          <p className="text-xs text-gray-500">{formatDate(announcement.created_at)}</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-0">
+
+                {/* <!-- Card --> */}
+                <Card className="p-2 shadow-none">
+                  <div className=" bg-white">
+                    <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-yellow-400 flex items-center justify-center text-white font-bold">
+                            J
                         </div>
-                      ))}
+                        <div>
+                            <p className="font-semibold">Meow Meow</p>
+                            <p className="text-sm text-gray-500">Yesterday</p>
+                        </div>
                     </div>
-                  )}
+
+                    <p className="text-sm text-gray-700 mt-3">
+                        Please complete the Vocabulary section on pages 16–17 about clothes and fashion
+                        parts a–e, and also the attached worksheet before class on Monday.
+                    </p>
+
+                    {/* <!-- Attachment Placeholder --> */}
+                    <div className="w-full h-28 bg-gray-200 rounded-md mt-4"></div>
+
+                    {/* <!-- Footer --> */}
+                    <div className="mt-3 flex items-center gap-2 text-blue-600 text-sm cursor-pointer">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V10a2 2 0 012-2h2m2-4h6m-6 0a2 2 0 00-2 2v2h10V6a2 2 0 00-2-2m-6 0h6" />
+                        </svg>
+                        Add comments
+                    </div>
+                  </div>
                 </Card>
-              </>
+
+                <Card className="p-2 shadow-none">
+                  <div className=" bg-white">
+                    <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-yellow-400 flex items-center justify-center text-white font-bold">
+                            J
+                        </div>
+                        <div>
+                            <p className="font-semibold">Meow Meow</p>
+                            <p className="text-sm text-gray-500">Yesterday</p>
+                        </div>
+                    </div>
+
+                    <p className="text-sm text-gray-700 mt-3">
+                        Please complete the Vocabulary section on pages 16–17 about clothes and fashion
+                        parts a–e, and also the attached worksheet before class on Monday.
+                    </p>
+
+                    {/* <!-- Attachment Placeholder --> */}
+                    <div className="w-full h-28 bg-gray-200 rounded-md mt-4"></div>
+
+                    {/* <!-- Footer --> */}
+                    <div className="mt-3 flex items-center gap-2 text-blue-600 text-sm cursor-pointer">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V10a2 2 0 012-2h2m2-4h6m-6 0a2 2 0 00-2 2v2h10V6a2 2 0 00-2-2m-6 0h6" />
+                        </svg>
+                        Add comments
+                    </div>
+                  </div>
+                </Card>
+              </div>
+
             )}
 
             {/* Classwork Tab */}
-            {activeTab === 'classwork' && (
-              <Card className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-6">Assignments</h3>
-                {assignments.length === 0 ? (
-                  <div className="text-center py-12 text-gray-500">
-                    <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    <p>No assignments yet</p>
+            {activeTab === 'assignment' && (
+              <Card className="p-0 shadow-none border-0">
+                <nav className="flex mb-6 ">
+                  {["Up Coming", "Past Due", "Completed"].map((tab) => (
+                    <button
+                      key={tab}
+                      onClick={() => setAssignmentTab(tab as any)}
+                      className={`
+                        bg-gray-100 px-6 py-3 text-sm font-medium transition rounded-xl me-3
+                        ${
+                          assignmentTab === tab
+                            ? "bg-purple-200 text-purple-700"
+                            : "text-gray-600 hover:bg-gray-100"
+                        }
+                      `}
+                    >
+                      {tab}
+                    </button>
+                  ))}
+                </nav>
+
+                {/* Empty State / List */}
+                { assignments.length === 0 && assignmentTab === 'Up Coming' ? (
+                  <div className="flex flex-col items-center justify-center py-20">
+                    <img
+                      src="/mnt/data/388f4c85-322a-4409-9319-e7f9f2ef5544.png"
+                      alt="Empty"
+                      className="w-44 h-44 object-contain mb-6"
+                    />
+                    <h2 className="text-xl font-semibold text-gray-700">
+                      No Upcoming assignments right now...
+                    </h2>
+                    <p className="text-gray-500 text-sm mt-2 text-center max-w-md">
+                      No Upcoming assignments right now... No Upcoming assignments right now...
+                    </p>
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {assignments.map((assignment) => {
-                      const status = getSubmissionStatus(assignment.id);
-                      return (
-                        <Link
-                          key={assignment.id}
-                          to={`/student/class/${classId}/assignment/${assignment.id}`}
-                          className="block p-4 border border-gray-200 rounded-lg hover:shadow-md hover:border-primary-300 transition-all"
-                        >
-                          <div className="flex items-start justify-between">
-                            <div className="flex items-start flex-1">
-                              <div className="p-2 bg-blue-100 rounded-lg mr-3">
-                                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                </svg>
-                              </div>
-                              <div className="flex-1">
-                                <h4 className="font-semibold text-gray-900 mb-1">{assignment.title}</h4>
-                                <p className="text-sm text-gray-600 mb-2">{assignment.description}</p>
-                                <div className="flex items-center space-x-4 text-xs text-gray-500">
-                                  <span>Due: {formatDate(assignment.due_date)}</span>
-                                  <span>•</span>
-                                  <span>{assignment.max_score} points</span>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="ml-4">
-                              <span className={`px-3 py-1 rounded-full text-xs font-medium bg-${status.color}-100 text-${status.color}-700 whitespace-nowrap`}>
-                                {status.status}
-                              </span>
-                            </div>
-                          </div>
-                        </Link>
-                      );
-                    })}
+                    {/* Your assignment list mapping here */}
                   </div>
                 )}
+
+                {
+                  assignmentTab === 'Past Due' && (
+                    <div>
+                        <AssignmentCard
+                          // key={a.id}
+                          title={"Homework 1"}
+                          subject={"React"}
+                          dueTime={"11:59"}
+                          points={20}
+                          createdAt={"2 months"}
+                        />
+                        <AssignmentCard
+                          // key={a.id}
+                          title={"Homework 1"}
+                          subject={"React"}
+                          dueTime={"11:59"}
+                          points={20}
+                          createdAt={"2 months"}
+                        />
+                        <AssignmentCard
+                          // key={a.id}
+                          title={"Homework 1"}
+                          subject={"React"}
+                          dueTime={"11:59"}
+                          points={20}
+                          createdAt={"2 months"}
+                        />
+                    </div>
+                    
+                  )
+                }
               </Card>
             )}
 
-            {/* People Tab */}
-            {activeTab === 'people' && (
-              <Card className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-6">Class Members</h3>
-                <div className="space-y-6">
-                  {/* Teacher Section */}
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-700 mb-3">Teacher</h4>
-                    {teacher ? (
-                      <div className="flex items-center p-3 bg-gradient-to-r from-primary-50 to-primary-100 rounded-lg border border-primary-200">
-                        <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-700 rounded-full flex items-center justify-center text-white font-semibold">
-                          {teacher.full_name?.charAt(0).toUpperCase() || 'T'}
-                        </div>
-                        <div className="ml-3">
-                          <p className="font-medium text-gray-900">{teacher.full_name || 'Teacher'}</p>
-                          <p className="text-sm text-gray-600">{teacher.email}</p>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex items-center p-3 bg-gray-50 rounded-lg">
-                        <div className="w-10 h-10 bg-primary-600 rounded-full flex items-center justify-center text-white font-semibold">
-                          T
-                        </div>
-                        <div className="ml-3">
-                          <p className="font-medium text-gray-900">Teacher</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Students Section */}
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-700 mb-3">
-                      Students ({classMembers.length})
-                    </h4>
-                    {classMembers.length === 0 ? (
-                      <div className="text-center py-8 text-gray-500">
-                        <p>No students enrolled yet</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {classMembers.map((member) => (
-                          <div key={member.student_id} className="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                            <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
-                              {member.profiles?.full_name?.charAt(0).toUpperCase() || 'S'}
-                            </div>
-                            <div className="ml-3">
-                              <p className="font-medium text-gray-900">{member.profiles?.full_name || 'Student'}</p>
-                              <p className="text-sm text-gray-500">{member.profiles?.email}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </Card>
-            )}
+           
           </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Class Code</h3>
-              <div 
-                onClick={copyClassCode}
-                className={`text-center p-4 ${classDetails.id ? getClassColor(classDetails.id).bg : 'bg-primary-600'} rounded-lg cursor-pointer hover:opacity-90 transition-opacity`}
-              >
-                <p className="text-3xl font-mono font-bold text-white mb-2">{classDetails.code}</p>
-                <p className="text-sm text-white/90">{copySuccess ? '✓ Copied!' : 'Click to copy'}</p>
-              </div>
-            </Card>
-
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Your Progress</h3>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Assignments</span>
-                  <span className="font-semibold text-gray-900">{assignments.length}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Submitted</span>
-                  <span className="font-semibold text-gray-900">
-                    {submissions.filter(s => assignments.some(a => a.id === s.assignment_id)).length}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Graded</span>
-                  <span className="font-semibold text-gray-900">
-                    {submissions.filter(s => s.status === 'graded' && assignments.some(a => a.id === s.assignment_id)).length}
-                  </span>
-                </div>
-              </div>
-            </Card>
-          </div>
+          
         </div>
       </div>
 
