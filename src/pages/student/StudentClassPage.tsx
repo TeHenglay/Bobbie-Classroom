@@ -35,7 +35,7 @@ interface Announcement {
 interface Submission {
   id: string;
   assignment_id: string;
-  grade: number | null;
+  score: number | null;
   status: string;
 }
 
@@ -234,7 +234,7 @@ export const StudentClassPage: React.FC = () => {
       return { status: 'Not submitted', color: 'gray' };
     }
     if (submission.status === 'graded') {
-      return { status: `Graded (${submission.grade} pts)`, color: 'green' };
+      return { status: `Graded (${submission.score} pts)`, color: 'green' };
     }
     if (submission.status === 'late') {
       return { status: 'Submitted (Late)', color: 'red' };

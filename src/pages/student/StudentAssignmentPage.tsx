@@ -19,10 +19,10 @@ interface Submission {
   id: string;
   assignment_id: string;
   student_id: string;
-  submission_text: string;
-  submission_file_url: string | null;
+  content: string;
+  file_url: string | null;
   submitted_at: string;
-  grade: number | null;
+  score: number | null;
   feedback: string | null;
   status: 'submitted' | 'graded' | 'late';
 }
@@ -70,7 +70,7 @@ export const StudentAssignmentPage: React.FC = () => {
 
       if (submissionData) {
         setSubmission(submissionData);
-        setSubmissionText(submissionData.submission_text || '');
+        setSubmissionText(submissionData.content || '');
       }
     } catch (error) {
       console.error('Error loading assignment data:', error);
@@ -109,15 +109,49 @@ export const StudentAssignmentPage: React.FC = () => {
       const now = new Date();
       const status = now > dueDate ? 'late' : 'submitted';
 
+      // Upload file if attached
+      let fileUrl: string | null = null;
+      if (attachedFiles.length > 0) {
+        const file = attachedFiles[0]; // Take the first file
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${user.id}/${assignmentId}/${Date.now()}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('assignment-answer')
+          .upload(fileName, file, {
+            cacheControl: '3600',
+            upsert: true
+          });
+
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          throw new Error(`Failed to upload file: ${uploadError.message}`);
+        }
+
+        // Get public URL
+        const { data: urlData } = supabase.storage
+          .from('assignment-answer')
+          .getPublicUrl(fileName);
+        
+        fileUrl = urlData.publicUrl;
+      }
+
       if (submission) {
         // Update existing submission
+        const updateData: any = {
+          content: submissionText,
+          submitted_at: new Date().toISOString(),
+          status: status
+        };
+
+        // Only update file_url if a new file was uploaded
+        if (fileUrl) {
+          updateData.file_url = fileUrl;
+        }
+
         const { error: updateError } = await supabase
           .from('submissions')
-          .update({
-            submission_text: submissionText,
-            submitted_at: new Date().toISOString(),
-            status: status
-          })
+          .update(updateData)
           .eq('id', submission.id);
 
         if (updateError) {
@@ -133,7 +167,8 @@ export const StudentAssignmentPage: React.FC = () => {
             {
               assignment_id: assignmentId,
               student_id: user.id,
-              submission_text: submissionText,
+              content: submissionText,
+              file_url: fileUrl,
               submitted_at: new Date().toISOString(),
               status: status
             },
@@ -151,6 +186,8 @@ export const StudentAssignmentPage: React.FC = () => {
         setSuccess('Your work has been submitted successfully!');
       }
 
+      // Clear attached files after successful submission
+      setAttachedFiles([]);
       await loadAssignmentData();
       setTimeout(() => setSuccess(''), 5000);
     } catch (err) {
@@ -245,14 +282,14 @@ export const StudentAssignmentPage: React.FC = () => {
             </div>
 
             {/* Grade Display (if graded) */}
-            {submission?.status === 'graded' && submission.grade !== null && (
+            {submission?.status === 'graded' && submission.score !== null && (
               <div className="bg-white border-2 border-green-200 rounded-lg overflow-hidden">
                 <div className="bg-gradient-to-r from-green-50 to-green-100 p-6">
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-sm font-medium text-green-800 mb-1">YOUR GRADE</h3>
                       <div className="flex items-baseline space-x-2">
-                        <span className="text-5xl font-bold text-green-600">{submission.grade}</span>
+                        <span className="text-5xl font-bold text-green-600">{submission.score}</span>
                         <span className="text-2xl text-gray-600">/ {assignment.max_score}</span>
                       </div>
                     </div>
@@ -288,9 +325,27 @@ export const StudentAssignmentPage: React.FC = () => {
                   <div className="space-y-4">
                     <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
                       <p className="text-gray-700 whitespace-pre-wrap">
-                        {submission.submission_text || 'No text submission'}
+                        {submission.content || 'No text submission'}
                       </p>
                     </div>
+                    {submission.file_url && (
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">Your Attachment</h4>
+                        <a
+                          href={submission.file_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors"
+                        >
+                          <div className="p-2 bg-blue-100 rounded-lg">
+                            <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          </div>
+                          <span className="text-blue-600 font-medium">View your submitted file</span>
+                        </a>
+                      </div>
+                    )}
                     <div className="flex items-center text-sm text-gray-500">
                       <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />

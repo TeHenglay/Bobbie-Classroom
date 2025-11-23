@@ -2,13 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Card, Button, Input, Spinner } from '../components';
+import { Card, Button, Spinner } from '../components';
 import { Layout } from '../components/Layout';
 
 export const ProfilePage: React.FC = () => {
-  const { user, profile, refreshProfile, signOut } = useAuth();
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
+  const { user, profile, refreshProfile } = useAuth();
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
@@ -24,11 +22,17 @@ export const ProfilePage: React.FC = () => {
     if (profile) {
       setFormData({
         full_name: profile.full_name || '',
-        email: profile.email || '',
+        email: user?.email || '',
       });
-      setAvatarUrl(profile.avatar_url || null);
+      setAvatarUrl(((profile as any).avatarUrl) || ((profile as any).avatar_url) || null);
+    } else {
+      // If no profile yet, seed email from authenticated user
+      setFormData({
+        full_name: '',
+        email: user?.email || '',
+      });
     }
-  }, [profile]);
+  }, [profile, user]);
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     try {
@@ -226,7 +230,7 @@ export const ProfilePage: React.FC = () => {
                 </label>
                 <input
                   type="text"
-                  value={profile?.role?.charAt(0).toUpperCase() + profile?.role?.slice(1) || ''}
+                  value={typeof profile?.role === 'string' && profile.role.length > 0 ? profile.role.charAt(0).toUpperCase() + profile.role.slice(1) : ''}
                   disabled
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
                 />
