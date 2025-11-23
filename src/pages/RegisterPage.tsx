@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
+import Shuffle from '../components/Shuffle';
 
 type UserRole = 'student' | 'teacher';
 
@@ -206,6 +207,7 @@ const DotMap = () => {
 
 
 export const RegisterPage: React.FC = () => {
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
@@ -217,8 +219,16 @@ export const RegisterPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
-  const { signUp } = useAuth();
+  const [isFlipped, setIsFlipped] = useState(false);
+  const { signUp, signIn } = useAuth();
   const navigate = useNavigate();
+
+  // Check if we should show Sign In side based on navigation state
+  useEffect(() => {
+    if (location.state?.showSignIn) {
+      setIsFlipped(true);
+    }
+  }, [location.state]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -246,14 +256,226 @@ export const RegisterPage: React.FC = () => {
     }
   };
 
+  const handleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      const userRole = await signIn(email, password);
+      if (userRole === 'admin') {
+        window.location.href = '/admin/dashboard';
+      } else if (userRole === 'teacher') {
+        window.location.href = '/teacher/dashboard';
+      } else {
+        window.location.href = '/student/dashboard';
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to sign in');
+      setLoading(false);
+    }
+  };
+
+  const handleCardSwap = () => {
+    setIsFlipped(!isFlipped);
+    setError('');
+  };
+
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-4xl overflow-hidden rounded-2xl flex bg-white shadow-xl"
+      {/* Back Button */}
+      <Link 
+        to="/"
+        className="absolute top-6 left-6 flex items-center gap-2 text-gray-600 hover:text-blue-600 transition-colors group z-50"
       >
+        <svg 
+          className="w-5 h-5 transform group-hover:-translate-x-1 transition-transform" 
+          fill="none" 
+          stroke="currentColor" 
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+        </svg>
+        <span className="font-medium">Back to Home</span>
+      </Link>
+
+      <div className="w-full max-w-4xl relative" style={{ perspective: '2000px' }}>
+        {/* Swap Button - Top Right Outside */}
+        <div className="group absolute top-4 -right-16 z-50">
+          <motion.button
+            type="button"
+            onClick={handleCardSwap}
+            whileHover={{ scale: 1.1, rotate: 180 }}
+            whileTap={{ scale: 0.95 }}
+            transition={{ duration: 0.3 }}
+            className="w-12 h-12 rounded-full border-2 border-blue-500 bg-white text-blue-600 hover:bg-blue-50 flex items-center justify-center transition-colors shadow-lg"
+          >
+            <svg 
+              className="w-6 h-6" 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                strokeWidth={2} 
+                d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" 
+              />
+            </svg>
+          </motion.button>
+
+          {/* Shuffle text on hover - Position changes based on card state */}
+          <div 
+            key={isFlipped ? 'create' : 'signin'}
+            className={`absolute ${!isFlipped ? 'top-full mt-2 left-1/2 -translate-x-1/2' : 'left-full ml-4 top-1/2 -translate-y-1/2'} opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap`}
+          >
+            <Shuffle
+              text={isFlipped ? "Create Account" : "Sign In"}
+              tag="span"
+              className="text-xs"
+              style={{ fontSize: '0.75rem', lineHeight: '1rem', textTransform: 'none', fontFamily: 'inherit' }}
+              shuffleDirection="right"
+              duration={0.35}
+              animationMode="evenodd"
+              shuffleTimes={1}
+              ease="power3.out"
+              stagger={0.03}
+              threshold={0.1}
+              triggerOnce={false}
+              triggerOnHover={true}
+              respectReducedMotion={true}
+            />
+          </div>
+        </div>
+
+        <motion.div
+          animate={{ rotateY: isFlipped ? 180 : 0 }}
+          transition={{ duration: 0.6, ease: "easeInOut" }}
+          style={{ 
+            transformStyle: 'preserve-3d',
+            position: 'relative'
+          }}
+          className="w-full"
+        >
+          {/* Sign In Card (Back) */}
+          <motion.div
+            style={{ 
+              backfaceVisibility: 'hidden',
+              transform: 'rotateY(180deg)',
+              position: isFlipped ? 'relative' : 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              pointerEvents: isFlipped ? 'auto' : 'none'
+            }}
+            className="overflow-hidden rounded-2xl bg-white shadow-xl w-full"
+          >
+            <div className="w-full flex bg-white">
+              {/* Left side - Map */}
+              <div className="hidden md:block w-1/2 h-[700px] relative overflow-hidden border-r border-gray-100 bg-gradient-to-br from-blue-50 to-indigo-100">
+                <div className="absolute top-0 left-0 right-0 h-48 opacity-60">
+                  <DotMap />
+                </div>
+                <div className="absolute bottom-0 left-0 right-0 h-48 opacity-80">
+                  <DotMap />
+                </div>
+                
+                <div className="absolute inset-0 flex flex-col items-center justify-center -translate-y-8">
+                  <img 
+                    src="/fav.png" 
+                    alt="BOBBIE CLASSROOM" 
+                    className="h-80 w-auto mb-8"
+                  />
+                  <h2 className="text-3xl font-bold font-heading text-center text-gray-800 px-8">
+                    Welcome Back!
+                  </h2>
+                  <p className="text-lg font-sans text-center text-gray-600 mt-4 px-8">
+                    Sign in to continue your learning journey
+                  </p>
+                </div>
+              </div>
+
+              {/* Right side - Sign In Form */}
+              <div className="w-full md:w-1/2 p-8 md:p-10 flex flex-col justify-center bg-white">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5 }}
+                >
+                  <h1 className="text-2xl md:text-3xl font-bold font-heading mb-1 text-gray-800">Sign In</h1>
+                  <p className="text-gray-500 font-sans mb-6">Welcome back to your classroom</p>
+
+                  <form onSubmit={handleSignIn} className="space-y-4">
+                    <CustomInput
+                      label="Email Address"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      required
+                    />
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Password
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={isPasswordVisible ? 'text' : 'password'}
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder="Enter your password"
+                          required
+                          className="flex h-10 w-full rounded-md border bg-gray-50 border-gray-200 px-3 py-2 text-sm text-gray-800 placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 pr-10"
+                        />
+                        <button
+                          type="button"
+                          className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700"
+                          onClick={() => setIsPasswordVisible(!isPasswordVisible)}
+                        >
+                          {isPasswordVisible ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {error && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-red-600 text-sm bg-red-50 border border-red-200 p-3 rounded-lg"
+                      >
+                        {error}
+                      </motion.div>
+                    )}
+
+                    <motion.button
+                      whileHover={{ scale: 1.01 }}
+                      whileTap={{ scale: 0.98 }}
+                      type="submit"
+                      disabled={loading}
+                      className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white py-2.5 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                    >
+                      {loading ? 'Signing in...' : 'Sign In'}
+                    </motion.button>
+                  </form>
+                </motion.div>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Create Account Card (Front) */}
+          <motion.div
+            style={{ 
+              backfaceVisibility: 'hidden',
+              position: !isFlipped ? 'relative' : 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              pointerEvents: !isFlipped ? 'auto' : 'none'
+            }}
+            className="overflow-hidden rounded-2xl flex bg-white shadow-xl w-full"
+          >
         {/* Left side - Map */}
         <div className="hidden md:block w-1/2 h-[700px] relative overflow-hidden border-r border-gray-100 bg-gradient-to-br from-blue-50 to-indigo-100">
           {/* Animation layers - top and bottom */}
@@ -271,10 +493,10 @@ export const RegisterPage: React.FC = () => {
               alt="BOBBIE CLASSROOM" 
               className="h-80 w-auto mb-8"
             />
-            <h2 className="text-3xl font-bold text-center text-gray-800 px-8">
+            <h2 className="text-3xl font-bold font-heading text-center text-gray-800 px-8">
               Your Journey to Excellence Starts Here
             </h2>
-            <p className="text-lg text-center text-gray-600 mt-4 px-8">
+            <p className="text-lg font-sans text-center text-gray-600 mt-4 px-8">
               Join thousands of learners and educators worldwide
             </p>
           </div>
@@ -287,8 +509,8 @@ export const RegisterPage: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <h1 className="text-2xl md:text-3xl font-bold mb-1 text-gray-800">Create Account</h1>
-            <p className="text-gray-500 mb-6">Fill in your information below</p>
+            <h1 className="text-2xl md:text-3xl font-bold font-heading mb-1 text-gray-800">Create Account</h1>
+            <p className="text-gray-500 font-sans mb-6">Fill in your information below</p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <CustomInput
@@ -435,20 +657,12 @@ export const RegisterPage: React.FC = () => {
               >
                 {loading ? 'Creating Account...' : 'Create Account'}
               </motion.button>
-
-              <div className="text-center mt-4">
-                <span className="text-gray-600 text-sm">Already have an account? </span>
-                <Link
-                  to="/login"
-                  className="text-blue-600 hover:text-blue-700 text-sm transition-colors font-medium"
-                >
-                  Sign in
-                </Link>
-              </div>
             </form>
           </motion.div>
         </div>
-      </motion.div>
+        </motion.div>
+        </motion.div>
+      </div>
     </div>
   );
 };

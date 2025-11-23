@@ -6,7 +6,8 @@ import { Card, Button, Spinner } from '../components';
 import { Layout } from '../components/Layout';
 
 export const ProfilePage: React.FC = () => {
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile, refreshProfile, signOut } = useAuth();
+  const navigate = useNavigate();
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
