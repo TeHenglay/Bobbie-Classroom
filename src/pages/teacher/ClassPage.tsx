@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { Card, Button, Spinner, Textarea } from '../../components';
+import { Card, Button, Spinner, Textarea, Modal } from '../../components';
 import { Layout } from '../../components/Layout';
 
 interface ClassDetails {
@@ -44,10 +44,14 @@ interface ClassMember {
 export const ClassPage: React.FC = () => {
   const { classId } = useParams<{ classId: string }>();
   const { user, profile } = useAuth();
+  const navigate = useNavigate();
   const [classDetails, setClassDetails] = useState<ClassDetails | null>(null);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [classMembers, setClassMembers] = useState<ClassMember[]>([]);
+  const [showOptionsMenu, setShowOptionsMenu] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [activeTab, setActiveTab] = useState<'stream' | 'classwork' | 'people'>('stream');
   const [loading, setLoading] = useState(true);
   const [showCreateAssignment, setShowCreateAssignment] = useState(false);
@@ -116,6 +120,21 @@ export const ClassPage: React.FC = () => {
       loadClassData();
     }
   }, [classId]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showOptionsMenu) {
+        const target = event.target as HTMLElement;
+        if (!target.closest('.relative')) {
+          setShowOptionsMenu(false);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showOptionsMenu]);
 
   useEffect(() => {
     if (classDetails) {
@@ -246,6 +265,49 @@ export const ClassPage: React.FC = () => {
       month: 'long',
       day: 'numeric',
     });
+  };
+
+  const handleDeleteClass = async () => {
+    if (!classId) return;
+    
+    setDeleting(true);
+    
+    try {
+      // Delete class members first
+      await supabase
+        .from('class_members')
+        .delete()
+        .eq('class_id', classId);
+      
+      // Delete assignments
+      await supabase
+        .from('assignments')
+        .delete()
+        .eq('class_id', classId);
+      
+      // Delete announcements
+      await supabase
+        .from('announcements')
+        .delete()
+        .eq('class_id', classId);
+      
+      // Delete the class
+      const { error: deleteError } = await supabase
+        .from('classes')
+        .delete()
+        .eq('id', classId);
+      
+      if (deleteError) throw deleteError;
+      
+      // Navigate back to classes page
+      navigate('/teacher/classes');
+    } catch (error) {
+      console.error('Error deleting class:', error);
+      alert('Failed to delete class');
+    } finally {
+      setDeleting(false);
+      setShowDeleteModal(false);
+    }
   };
 
   const handleCreateAssignment = async (e: React.FormEvent) => {
@@ -629,7 +691,41 @@ export const ClassPage: React.FC = () => {
             {/* People Tab */}
             {activeTab === 'people' && (
               <Card className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-6">Class Members</h3>
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900">Class Members</h3>
+                  
+                  {/* Options Menu Button */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowOptionsMenu(!showOptionsMenu)}
+                      className="p-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors shadow-md"
+                      title="Class options"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                      </svg>
+                    </button>
+                    
+                    {/* Dropdown Menu */}
+                    {showOptionsMenu && (
+                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+                        <button
+                          onClick={() => {
+                            setShowOptionsMenu(false);
+                            setShowDeleteModal(true);
+                          }}
+                          className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          Delete Class
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
                 <div className="space-y-6">
                   <div>
                     <h4 className="text-sm font-medium text-gray-700 mb-3">Teachers</h4>
@@ -990,6 +1086,44 @@ export const ClassPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        title="Delete Class"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-600">
+            Are you sure you want to delete this class? This action cannot be undone and will:
+          </p>
+          <ul className="list-disc list-inside text-gray-600 space-y-1 ml-2">
+            <li>Remove all students from the class</li>
+            <li>Delete all assignments and submissions</li>
+            <li>Delete all announcements</li>
+            <li>Permanently delete the class</li>
+          </ul>
+          
+          <div className="flex justify-end space-x-3 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowDeleteModal(false)}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleDeleteClass}
+              isLoading={deleting}
+              disabled={deleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deleting ? 'Deleting...' : 'Delete Class'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </Layout>
   );
 };

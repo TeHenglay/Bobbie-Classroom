@@ -169,7 +169,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           )}
           {(profile?.role === 'teacher' || profile?.role === 'admin') && (
             <div className="ml-6">
-              {location.pathname.includes('/classes') && (
+              {(location.pathname.includes('/classes') || location.pathname.includes('/teacher/dashboard')) && (
                 <Button
                   onClick={() => {
                     if (profile?.role === 'teacher') {

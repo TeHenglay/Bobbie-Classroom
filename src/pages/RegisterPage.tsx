@@ -266,7 +266,7 @@ export const RegisterPage: React.FC = () => {
       if (userRole === 'admin') {
         window.location.href = '/admin/dashboard';
       } else if (userRole === 'teacher') {
-        window.location.href = '/teacher/dashboard';
+        window.location.href = '/teacher/classes';
       } else {
         window.location.href = '/student/dashboard';
       }

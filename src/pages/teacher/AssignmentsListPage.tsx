@@ -24,7 +24,10 @@ export const AssignmentsListPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'active' | 'past'>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [assignmentToDelete, setAssignmentToDelete] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [allClasses, setAllClasses] = useState<Class[]>([]);
   const [attachments, setAttachments] = useState<File[]>([]);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -144,6 +147,37 @@ export const AssignmentsListPage: React.FC = () => {
         return assignments.filter(a => new Date(a.due_date) < now);
       default:
         return assignments;
+    }
+  };
+
+  const handleDeleteAssignment = async () => {
+    if (!assignmentToDelete) return;
+    
+    setDeleting(true);
+    
+    try {
+      // Delete assignment submissions first
+      await supabase
+        .from('submissions')
+        .delete()
+        .eq('assignment_id', assignmentToDelete);
+      
+      // Delete the assignment
+      const { error: deleteError } = await supabase
+        .from('assignments')
+        .delete()
+        .eq('id', assignmentToDelete);
+      
+      if (deleteError) throw deleteError;
+      
+      setShowDeleteModal(false);
+      setAssignmentToDelete(null);
+      await loadAssignments();
+    } catch (error) {
+      console.error('Error deleting assignment:', error);
+      alert('Failed to delete assignment');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -302,13 +336,28 @@ export const AssignmentsListPage: React.FC = () => {
                         : 0;
 
                       return (
-                        <Link
-                          key={assignment.id}
-                          to={`/teacher/class/${assignment.class_id}/assignment/${assignment.id}`}
-                          state={{ from: 'assignments' }}
-                          className="block"
-                        >
-                          <Card className="hover:shadow-lg transition-shadow h-full">
+                        <div key={assignment.id} className="relative group">
+                          {/* Delete Button */}
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setAssignmentToDelete(assignment.id);
+                              setShowDeleteModal(true);
+                            }}
+                            className="absolute top-2 right-2 z-10 p-2 bg-red-500 hover:bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                            title="Delete assignment"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                          
+                          <Link
+                            to={`/teacher/class/${assignment.class_id}/assignment/${assignment.id}`}
+                            state={{ from: 'assignments' }}
+                            className="block"
+                          >
+                            <Card className="hover:shadow-lg transition-shadow h-full">
                             <div className="flex flex-col h-full">
                               {/* Assignment Title */}
                               <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
@@ -365,6 +414,7 @@ export const AssignmentsListPage: React.FC = () => {
                             </div>
                           </Card>
                         </Link>
+                        </div>
                       );
                     })}
                   </div>
@@ -572,6 +622,44 @@ export const AssignmentsListPage: React.FC = () => {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setAssignmentToDelete(null);
+        }}
+        title="Delete Assignment"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-600">
+            Are you sure you want to delete this assignment? This action cannot be undone and will also delete all student submissions.
+          </p>
+          
+          <div className="flex justify-end space-x-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setShowDeleteModal(false);
+                setAssignmentToDelete(null);
+              }}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleDeleteAssignment}
+              isLoading={deleting}
+              disabled={deleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deleting ? 'Deleting...' : 'Delete Assignment'}
+            </Button>
+          </div>
+        </div>
       </Modal>
     </Layout>
   );
