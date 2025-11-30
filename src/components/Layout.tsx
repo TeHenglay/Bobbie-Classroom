@@ -45,6 +45,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     }
     return [
       { label: 'My Classes', path: '/student/classes' },
+      { label: 'Assignments', path: '/student/assignments' },
       { label: 'Join Class', path: '/student/join-class' },
       { label: 'Lectures', path: '/student/lectures' },
     ];
