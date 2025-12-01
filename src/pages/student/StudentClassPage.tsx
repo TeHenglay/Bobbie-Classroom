@@ -298,25 +298,20 @@ export const StudentClassPage: React.FC = () => {
                   let filteredAssignments: Assignment[] = [];
 
                   if (assignmentTab === 'Up Coming') {
-                    // Upcoming: not submitted and not past due
+                    // Upcoming: assignments with due date in the future
                     filteredAssignments = assignments.filter(assignment => {
-                      const submission = submissions.find(s => s.assignment_id === assignment.id);
                       const dueDate = new Date(assignment.due_date);
-                      return !submission && dueDate >= now;
+                      return dueDate >= now;
                     });
                   } else if (assignmentTab === 'Past Due') {
-                    // Past Due: not submitted or submitted late and past due date
+                    // Past Due: assignments with due date in the past
                     filteredAssignments = assignments.filter(assignment => {
-                      const submission = submissions.find(s => s.assignment_id === assignment.id);
                       const dueDate = new Date(assignment.due_date);
-                      return dueDate < now && (!submission || submission.status === 'late') && submission?.status !== 'graded';
+                      return dueDate < now;
                     });
                   } else if (assignmentTab === 'Completed') {
-                    // Completed: graded assignments
-                    filteredAssignments = assignments.filter(assignment => {
-                      const submission = submissions.find(s => s.assignment_id === assignment.id);
-                      return submission?.status === 'graded';
-                    });
+                    // Completed: show empty for now (would need submissions data)
+                    filteredAssignments = [];
                   }
 
                   return filteredAssignments.length === 0 ? (
@@ -336,16 +331,15 @@ export const StudentClassPage: React.FC = () => {
                   ) : (
                     <div className="space-y-4">
                       {filteredAssignments.map((assignment) => {
-                        const submission = submissions.find(s => s.assignment_id === assignment.id);
                         const dueDate = new Date(assignment.due_date);
                         const createdDate = new Date(assignment.created_at);
                         const daysSinceCreated = Math.floor((now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
                         const monthsSinceCreated = Math.floor(daysSinceCreated / 30);
                         
                         const timeAgo = monthsSinceCreated > 0 
-                          ? `${monthsSinceCreated} month${monthsSinceCreated > 1 ? 's' : ''} ago`
+                          ? `${monthsSinceCreated} month${monthsSinceCreated > 1 ? 's' : ''}`
                           : daysSinceCreated > 0 
-                            ? `${daysSinceCreated} day${daysSinceCreated > 1 ? 's' : ''} ago`
+                            ? `${daysSinceCreated} day${daysSinceCreated > 1 ? 's' : ''}`
                             : 'Today';
 
                         return (
@@ -360,7 +354,6 @@ export const StudentClassPage: React.FC = () => {
                               dueTime={dueDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                               points={assignment.max_score}
                               createdAt={timeAgo}
-                              score={submission?.score}
                             />
                           </Link>
                         );
