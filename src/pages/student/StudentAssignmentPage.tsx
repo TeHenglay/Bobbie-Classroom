@@ -213,6 +213,48 @@ export const StudentAssignmentPage: React.FC = () => {
     return new Date() > new Date(assignment.due_date);
   };
 
+  const getDueStatus = () => {
+    if (!assignment) return { status: '', color: '', icon: '' };
+    
+    const now = new Date();
+    const dueDate = new Date(assignment.due_date);
+    const diffMs = dueDate.getTime() - now.getTime();
+    const diffHours = diffMs / (1000 * 60 * 60);
+    const diffDays = diffMs / (1000 * 60 * 60 * 24);
+
+    if (diffMs < 0) {
+      return { 
+        status: 'Past Due', 
+        color: 'text-red-600 bg-red-50 border-red-200',
+        icon: 'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
+      };
+    } else if (diffHours < 24) {
+      return { 
+        status: 'Due Today', 
+        color: 'text-orange-600 bg-orange-50 border-orange-200',
+        icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'
+      };
+    } else if (diffDays < 3) {
+      return { 
+        status: 'Due Soon', 
+        color: 'text-yellow-600 bg-yellow-50 border-yellow-200',
+        icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'
+      };
+    } else if (diffDays < 7) {
+      return { 
+        status: 'Due This Week', 
+        color: 'text-blue-600 bg-blue-50 border-blue-200',
+        icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'
+      };
+    } else {
+      return { 
+        status: 'Upcoming', 
+        color: 'text-green-600 bg-green-50 border-green-200',
+        icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'
+      };
+    }
+  };
+
   if (loading) {
     return (
       <Layout>
@@ -259,7 +301,14 @@ export const StudentAssignmentPage: React.FC = () => {
             <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
               {/* Title Section with colored header */}
               <div className="bg-gradient-to-r from-primary-600 to-primary-700 p-6">
-                <h1 className="text-3xl font-bold text-white mb-2">{assignment.title}</h1>
+                <div className="flex items-start justify-between mb-2">
+                  <h1 className="text-3xl font-bold text-white flex-1">{assignment.title}</h1>
+                  {!submission && (
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getDueStatus().color}`}>
+                      {getDueStatus().status}
+                    </span>
+                  )}
+                </div>
                 <div className="flex items-center space-x-4 text-white/90 text-sm">
                   <span className="flex items-center">
                     <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -513,11 +562,28 @@ export const StudentAssignmentPage: React.FC = () => {
             </div>
 
             {/* Due Date Card */}
-            <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <h3 className="text-sm font-semibold text-gray-700 mb-2">Due</h3>
-              <p className="text-gray-900 font-medium">{formatDate(assignment.due_date)}</p>
-              {isOverdue() && !submission && (
-                <p className="text-red-600 text-sm mt-1">Overdue</p>
+            <div className={`bg-white border-2 rounded-lg p-4 ${!submission ? getDueStatus().color : 'border-gray-200'}`}>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-semibold text-gray-700">Due Date</h3>
+                {!submission && (
+                  <svg className={`w-5 h-5 ${getDueStatus().color.split(' ')[0]}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={getDueStatus().icon} />
+                  </svg>
+                )}
+              </div>
+              <p className="text-gray-900 font-medium text-sm mb-1">{formatDate(assignment.due_date)}</p>
+              {!submission && (
+                <div className={`mt-2 px-2 py-1 rounded text-xs font-semibold ${getDueStatus().color}`}>
+                  {getDueStatus().status}
+                </div>
+              )}
+              {submission && (
+                <p className="text-green-600 text-xs font-medium mt-2 flex items-center">
+                  <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  Submitted
+                </p>
               )}
             </div>
 
