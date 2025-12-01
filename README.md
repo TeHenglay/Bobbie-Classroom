@@ -1,4 +1,4 @@
-# ClassLab - Classroom Management Platform
+# Bobbie Classroom - Classroom Management Platform
 
 A Google Classroom-style platform built with React, TypeScript, Tailwind CSS, and Supabase.
 
