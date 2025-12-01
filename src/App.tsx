@@ -1,9 +1,6 @@
-import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { SearchProvider } from './contexts/SearchContext';
-import { ProtectedRoute } from './components/ProtectedRoute';
-import { RoleGuard } from './components/RoleGuard';
 
 // Pages
 import { HomePage } from './pages/HomePage';

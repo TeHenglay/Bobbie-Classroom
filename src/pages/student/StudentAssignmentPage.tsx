@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { Card, Button, Spinner } from '../../components';
+import { Button, Spinner } from '../../components';
 import { Layout } from '../../components/Layout';
 
 interface Assignment {

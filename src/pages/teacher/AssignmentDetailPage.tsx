@@ -314,7 +314,7 @@ export const AssignmentDetailPage: React.FC = () => {
                       </div>
                       
                       <div className="flex items-center space-x-4">
-                        {submission?.score !== null && (
+                        {submission?.score !== null && submission?.score !== undefined && (
                           <div className="text-right mr-4">
                             <div className="text-2xl font-bold text-primary-600">{submission.score}</div>
                             <div className="text-xs text-gray-500">/ {assignment.max_score}</div>

@@ -2,9 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { Card, Button, Spinner } from '../../components';
+import { Card, Spinner } from '../../components';
 import { Layout } from '../../components/Layout';
-import { div, h1 } from 'framer-motion/client';
 import AssignmentCard from '@/components/AssignmentCard';
 
 interface ClassDetails {
@@ -26,52 +25,17 @@ interface Assignment {
   created_at: string;
 }
 
-interface Announcement {
-  id: string;
-  title: string;
-  message: string;
-  created_at: string;
-  created_by: string;
-}
-
-interface Submission {
-  id: string;
-  assignment_id: string;
-  score: number | null;
-  status: string;
-}
-
-interface ClassMember {
-  student_id: string;
-  profiles: {
-    id: string;
-    full_name: string;
-    email: string;
-  };
-}
-
-interface TeacherProfile {
-  id: string;
-  full_name: string;
-  email: string;
-}
-
 export const StudentClassPage: React.FC = () => {
   const { classId } = useParams<{ classId: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [classDetails, setClassDetails] = useState<ClassDetails | null>(null);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [submissions, setSubmissions] = useState<Submission[]>([]);
-  const [classMembers, setClassMembers] = useState<ClassMember[]>([]);
-  const [teacher, setTeacher] = useState<TeacherProfile | null>(null);
   const [activeTab, setActiveTab] = useState<'stream' | 'assignment' | 'people'>('stream');
   const [assignmentTab, setAssignmentTab] = useState<'Up Coming' | 'Past Due' | 'Completed'>('Up Coming');
   const [loading, setLoading] = useState(true);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [leaving, setLeaving] = useState(false);
-  const [copySuccess, setCopySuccess] = useState(false);
 
   // Get color based on class ID (consistent with dashboard)
   const getClassColor = (classId: string) => {
@@ -86,18 +50,6 @@ export const StudentClassPage: React.FC = () => {
     // Use a simple hash of the classId for consistency
     const hash = classId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     return colors[hash % colors.length];
-  };
-
-  const copyClassCode = async () => {
-    if (classDetails?.code) {
-      try {
-        await navigator.clipboard.writeText(classDetails.code);
-        setCopySuccess(true);
-        setTimeout(() => setCopySuccess(false), 3000);
-      } catch (err) {
-        console.error('Failed to copy class code');
-      }
-    }
   };
 
   useEffect(() => {
@@ -130,67 +82,6 @@ export const StudentClassPage: React.FC = () => {
         setAssignments(assignmentsData);
       }
 
-      // Load announcements
-      const { data: announcementsData } = await supabase
-        .from('announcements')
-        .select('*')
-        .eq('class_id', classId)
-        .order('created_at', { ascending: false });
-
-      if (announcementsData) {
-        setAnnouncements(announcementsData);
-      }
-
-      // Load student's submissions
-      if (user?.id) {
-        const { data: submissionsData } = await supabase
-          .from('submissions')
-          .select('*')
-          .eq('student_id', user.id);
-
-        if (submissionsData) {
-          setSubmissions(submissionsData);
-        }
-      }
-
-      // Load class members with their profiles
-      const { data: membersData, error: membersError } = await supabase
-        .from('class_members')
-        .select('student_id')
-        .eq('class_id', classId);
-
-      console.log('Class members raw data:', membersData);
-      console.log('Class members error:', membersError);
-
-      if (membersData && membersData.length > 0) {
-        // Fetch profiles for each student
-        const studentIds = membersData.map(m => m.student_id);
-        const { data: profilesData } = await supabase
-          .from('profiles')
-          .select('id, full_name, email')
-          .in('id', studentIds);
-
-        if (profilesData) {
-          const membersWithProfiles = membersData.map(member => ({
-            student_id: member.student_id,
-            profiles: profilesData.find(p => p.id === member.student_id)
-          }));
-          setClassMembers(membersWithProfiles as any);
-        }
-      }
-
-      // Load teacher profile
-      if (classData?.teacher_id) {
-        const { data: teacherData } = await supabase
-          .from('profiles')
-          .select('id, full_name, email')
-          .eq('id', classData.teacher_id)
-          .single();
-
-        if (teacherData) {
-          setTeacher(teacherData);
-        }
-      }
     } catch (error) {
       console.error('Error loading class data:', error);
     } finally {
@@ -221,28 +112,6 @@ export const StudentClassPage: React.FC = () => {
       setLeaving(false);
       setShowLeaveModal(false);
     }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  };
-
-  const getSubmissionStatus = (assignmentId: string) => {
-    const submission = submissions.find(s => s.assignment_id === assignmentId);
-    if (!submission) {
-      return { status: 'Not submitted', color: 'gray' };
-    }
-    if (submission.status === 'graded') {
-      return { status: `Graded (${submission.score} pts)`, color: 'green' };
-    }
-    if (submission.status === 'late') {
-      return { status: 'Submitted (Late)', color: 'red' };
-    }
-    return { status: 'Submitted', color: 'blue' };
   };
 
   if (loading) {

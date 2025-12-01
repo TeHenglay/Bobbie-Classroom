@@ -1,28 +1,35 @@
 # ClassLab - Classroom Management Platform
 
-A Google Classroom-style platform built with React, TypeScript, Tailwind CSS, and Supabase.
+![Bobbie Classroom Banner](./public/BOBBIE%20Classroom%20banner.png)
 
-## Features
+A comprehensive classroom management platform that empowers educators and students with intuitive tools for teaching, learning, and collaboration. Built with React, TypeScript, Tailwind CSS, and Supabase.
 
-### For Students
-- 📚 Join classes using class codes
-- 📝 View and submit assignments
-- 📊 Track grades and feedback
-- 📢 View class announcements
-- 📅 See upcoming assignments
+## ✨ Features
 
-### For Teachers
-- 🏫 Create and manage classes
-- 📋 Create assignments with due dates
-- ✅ Grade student submissions
-- 📣 Post class announcements
-- 👥 Manage class members
+### 🎓 For Students
+- **Join Classes Instantly** - Enter a class code and get immediate access to course materials
+- **Assignment Management** - View, submit, and track all your assignments in one place
+- **Real-time Grades** - Get instant feedback and track your academic progress
+- **Class Announcements** - Stay updated with important class news and updates
+- **Upcoming Deadlines** - Never miss a deadline with clear assignment timelines
+- **Interactive Learning** - Access lecture materials and course resources
+- **AI Chat Assistant** - Get instant help and answers to your questions
 
-### For Administrators
-- 👤 Manage user accounts
-- 🔄 Change user roles (student/teacher/admin)
-- 📊 View system statistics
-- 🏢 Oversee all classes
+### 👨‍🏫 For Teachers
+- **Class Creation & Management** - Set up and organize multiple classes effortlessly
+- **Assignment Builder** - Create detailed assignments with due dates and point values
+- **Streamlined Grading** - Efficiently grade and provide feedback on student submissions
+- **Announcements** - Keep students informed with class-wide notifications
+- **Student Management** - Track and manage class enrollment
+- **Lecture Materials** - Upload and share educational resources
+- **Performance Analytics** - Monitor student progress and engagement
+
+### 🔧 For Administrators
+- **User Management** - Complete control over user accounts and permissions
+- **Role Assignment** - Flexibly assign and modify user roles (student/teacher/admin)
+- **System Analytics** - Comprehensive dashboard with usage statistics
+- **Class Oversight** - Monitor all classes and activities across the platform
+- **Platform Configuration** - Manage system-wide settings and preferences
 
 ## Tech Stack
 

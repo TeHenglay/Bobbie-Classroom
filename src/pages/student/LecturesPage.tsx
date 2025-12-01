@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { useAuth } from '../../contexts/AuthContext';
 import { Card, Spinner } from '../../components';
 import { Layout } from '../../components/Layout';
 
@@ -18,7 +17,6 @@ interface Lecture {
 }
 
 export const LecturesPage: React.FC = () => {
-  const { user } = useAuth();
   const [lectures, setLectures] = useState<Lecture[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedLecture, setSelectedLecture] = useState<Lecture | null>(null);

@@ -3,11 +3,17 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSearch } from '../../contexts/SearchContext';
-import type { Class, Assignment, ClassMember } from '../../types';
 import { Card, Spinner, Button } from '../../components';
 import { Layout } from '../../components/Layout';
 
-interface ClassWithTeacher extends Class {
+interface ClassWithTeacher {
+  id: string;
+  name: string;
+  section?: string;
+  description: string;
+  code: string;
+  teacher_id: string;
+  created_at: string;
   teacher?: {
     full_name: string;
     avatar_url?: string;
@@ -19,26 +25,10 @@ interface ClassWithTeacher extends Class {
   }>;
 }
 
-interface Submission {
-  id: string;
-  assignment_id: string;
-  student_id: string;
-  score: number | null;
-  feedback: string | null;
-  status: string;
-  submitted_at: string;
-}
-
-interface GradedAssignment extends Assignment {
-  submission?: Submission;
-}
-
 export const StudentDashboard: React.FC = () => {
   const { user } = useAuth();
   const { searchTerm } = useSearch();
   const [classes, setClasses] = useState<ClassWithTeacher[]>([]);
-  const [upcomingAssignments, setUpcomingAssignments] = useState<Assignment[]>([]);
-  const [gradedAssignments, setGradedAssignments] = useState<GradedAssignment[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -97,48 +87,6 @@ export const StudentDashboard: React.FC = () => {
         );
         
         setClasses(classesWithClassmates);
-
-        // Load upcoming assignments
-        const classIds = enrolledClasses.map((c) => c.id);
-        if (classIds.length > 0) {
-          const { data: assignmentData } = await supabase
-            .from('assignments')
-            .select('*, class:classes(*)')
-            .in('class_id', classIds)
-            .gte('due_date', new Date().toISOString())
-            .order('due_date', { ascending: true })
-            .limit(5);
-
-          if (assignmentData) {
-            setUpcomingAssignments(assignmentData);
-          }
-
-          // Load graded assignments
-          const { data: submissionsData } = await supabase
-            .from('submissions')
-            .select('*')
-            .eq('student_id', user.id)
-            .eq('status', 'graded')
-            .order('submitted_at', { ascending: false })
-            .limit(5);
-
-          if (submissionsData && submissionsData.length > 0) {
-            // Get assignment details for graded submissions
-            const assignmentIds = submissionsData.map(s => s.assignment_id);
-            const { data: gradedAssignmentData } = await supabase
-              .from('assignments')
-              .select('*, class:classes(*)')
-              .in('id', assignmentIds);
-
-            if (gradedAssignmentData) {
-              const gradedWithSubmissions = gradedAssignmentData.map(assignment => ({
-                ...assignment,
-                submission: submissionsData.find(s => s.assignment_id === assignment.id)
-              }));
-              setGradedAssignments(gradedWithSubmissions);
-            }
-          }
-        }
       }
     } catch (error) {
       console.error('Error loading data:', error);

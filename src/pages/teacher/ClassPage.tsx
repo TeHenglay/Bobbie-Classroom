@@ -324,7 +324,7 @@ export const ClassPage: React.FC = () => {
       // Make description optional, provide default if empty
       const description = assignmentForm.description || 'No additional instructions provided.';
 
-      const { data, error: insertError } = await supabase
+      const { error: insertError } = await supabase
         .from('assignments')
         .insert([
           {
@@ -335,8 +335,7 @@ export const ClassPage: React.FC = () => {
             max_score: assignmentForm.max_score,
             created_by: user.id,
           },
-        ])
-        .select();
+        ]);
 
       if (insertError) throw insertError;
 
@@ -366,7 +365,7 @@ export const ClassPage: React.FC = () => {
         throw new Error('Missing user or class information');
       }
 
-      const { data, error: insertError } = await supabase
+      const { error: insertError } = await supabase
         .from('announcements')
         .insert([
           {
@@ -375,8 +374,7 @@ export const ClassPage: React.FC = () => {
             message: announcementForm.message,
             created_by: user.id,
           },
-        ])
-        .select();
+        ]);
 
       if (insertError) throw insertError;
 
