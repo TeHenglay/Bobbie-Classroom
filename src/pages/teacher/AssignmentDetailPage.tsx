@@ -99,12 +99,14 @@ export const AssignmentDetailPage: React.FC = () => {
       }
 
       // Load submissions
-      const { data: submissionsData } = await supabase
+      const { data: submissionsData, error: submissionsError } = await supabase
         .from('submissions')
         .select('*')
         .eq('assignment_id', assignmentId);
 
+      console.log('Assignment ID:', assignmentId);
       console.log('Submissions data:', submissionsData);
+      console.log('Submissions error:', submissionsError);
 
       if (submissionsData && submissionsData.length > 0) {
         // Get student profiles for submissions
@@ -114,6 +116,8 @@ export const AssignmentDetailPage: React.FC = () => {
           .select('id, full_name, email')
           .in('id', submissionStudentIds);
 
+        console.log('Submission profiles:', submissionProfiles);
+
         // Map to expected structure
         const mappedSubmissions = submissionsData.map((sub: any) => ({
           ...sub,
@@ -121,6 +125,9 @@ export const AssignmentDetailPage: React.FC = () => {
         }));
         setSubmissions(mappedSubmissions);
         console.log('Mapped submissions:', mappedSubmissions);
+      } else {
+        console.log('No submissions found or empty array');
+        setSubmissions([]);
       }
     } catch (error) {
       console.error('Error loading assignment data:', error);
@@ -291,7 +298,9 @@ export const AssignmentDetailPage: React.FC = () => {
                 return (
                   <div
                     key={student.student_id}
-                    className="p-4 border border-gray-200 rounded-lg hover:shadow-md transition-all cursor-pointer"
+                    className={`p-4 border-2 rounded-lg hover:shadow-md transition-all ${
+                      submission ? 'border-blue-200 bg-blue-50/30 cursor-pointer hover:border-blue-300' : 'border-gray-200 cursor-not-allowed opacity-60'
+                    }`}
                     onClick={() => {
                       if (submission) {
                         setSelectedSubmission(submission);
@@ -310,6 +319,14 @@ export const AssignmentDetailPage: React.FC = () => {
                         <div className="flex-1">
                           <h3 className="font-semibold text-gray-900">{student.profiles.full_name || 'Student'}</h3>
                           <p className="text-sm text-gray-500">{student.profiles.email}</p>
+                          {submission && (
+                            <p className="text-xs text-blue-600 mt-1 flex items-center">
+                              <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                              </svg>
+                              Click to view submission
+                            </p>
+                          )}
                         </div>
                       </div>
                       

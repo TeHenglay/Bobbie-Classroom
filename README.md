@@ -1,4 +1,4 @@
-# ClassLab - Classroom Management Platform
+# Bobbie Classroom - Classroom Management Platform
 
 ![Bobbie Classroom Banner](./public/BOBBIE%20Classroom%20banner.png)
 

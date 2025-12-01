@@ -292,58 +292,82 @@ export const StudentClassPage: React.FC = () => {
                   ))}
                 </nav>
 
-                {/* Empty State / List */}
-                { assignments.length === 0 && assignmentTab === 'Up Coming' ? (
-                  <div className="flex flex-col items-center justify-center py-20">
-                    <img
-                      src="/mnt/data/388f4c85-322a-4409-9319-e7f9f2ef5544.png"
-                      alt="Empty"
-                      className="w-44 h-44 object-contain mb-6"
-                    />
-                    <h2 className="text-xl font-semibold text-gray-700">
-                      No Upcoming assignments right now...
-                    </h2>
-                    <p className="text-gray-500 text-sm mt-2 text-center max-w-md">
-                      No Upcoming assignments right now... No Upcoming assignments right now...
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {/* Your assignment list mapping here */}
-                  </div>
-                )}
+                {/* Filter assignments based on tab */}
+                {(() => {
+                  const now = new Date();
+                  let filteredAssignments: Assignment[] = [];
 
-                {
-                  assignmentTab === 'Past Due' && (
-                    <div>
-                        <AssignmentCard
-                          // key={a.id}
-                          title={"Homework 1"}
-                          subject={"React"}
-                          dueTime={"11:59"}
-                          points={20}
-                          createdAt={"2 months"}
-                        />
-                        <AssignmentCard
-                          // key={a.id}
-                          title={"Homework 1"}
-                          subject={"React"}
-                          dueTime={"11:59"}
-                          points={20}
-                          createdAt={"2 months"}
-                        />
-                        <AssignmentCard
-                          // key={a.id}
-                          title={"Homework 1"}
-                          subject={"React"}
-                          dueTime={"11:59"}
-                          points={20}
-                          createdAt={"2 months"}
-                        />
+                  if (assignmentTab === 'Up Coming') {
+                    // Upcoming: not submitted and not past due
+                    filteredAssignments = assignments.filter(assignment => {
+                      const submission = submissions.find(s => s.assignment_id === assignment.id);
+                      const dueDate = new Date(assignment.due_date);
+                      return !submission && dueDate >= now;
+                    });
+                  } else if (assignmentTab === 'Past Due') {
+                    // Past Due: not submitted or submitted late and past due date
+                    filteredAssignments = assignments.filter(assignment => {
+                      const submission = submissions.find(s => s.assignment_id === assignment.id);
+                      const dueDate = new Date(assignment.due_date);
+                      return dueDate < now && (!submission || submission.status === 'late') && submission?.status !== 'graded';
+                    });
+                  } else if (assignmentTab === 'Completed') {
+                    // Completed: graded assignments
+                    filteredAssignments = assignments.filter(assignment => {
+                      const submission = submissions.find(s => s.assignment_id === assignment.id);
+                      return submission?.status === 'graded';
+                    });
+                  }
+
+                  return filteredAssignments.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-20">
+                      <svg className="w-44 h-44 text-gray-300 mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <h2 className="text-xl font-semibold text-gray-700">
+                        No {assignmentTab.toLowerCase()} assignments
+                      </h2>
+                      <p className="text-gray-500 text-sm mt-2 text-center max-w-md">
+                        {assignmentTab === 'Up Coming' && 'You have no upcoming assignments at the moment.'}
+                        {assignmentTab === 'Past Due' && 'Great! You have no past due assignments.'}
+                        {assignmentTab === 'Completed' && 'No graded assignments yet.'}
+                      </p>
                     </div>
-                    
-                  )
-                }
+                  ) : (
+                    <div className="space-y-4">
+                      {filteredAssignments.map((assignment) => {
+                        const submission = submissions.find(s => s.assignment_id === assignment.id);
+                        const dueDate = new Date(assignment.due_date);
+                        const createdDate = new Date(assignment.created_at);
+                        const daysSinceCreated = Math.floor((now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
+                        const monthsSinceCreated = Math.floor(daysSinceCreated / 30);
+                        
+                        const timeAgo = monthsSinceCreated > 0 
+                          ? `${monthsSinceCreated} month${monthsSinceCreated > 1 ? 's' : ''} ago`
+                          : daysSinceCreated > 0 
+                            ? `${daysSinceCreated} day${daysSinceCreated > 1 ? 's' : ''} ago`
+                            : 'Today';
+
+                        return (
+                          <Link
+                            key={assignment.id}
+                            to={`/student/class/${classId}/assignment/${assignment.id}`}
+                            className="block"
+                          >
+                            <AssignmentCard
+                              title={assignment.title}
+                              subject={classDetails?.name || ''}
+                              dueTime={dueDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                              points={assignment.max_score}
+                              createdAt={timeAgo}
+                              score={submission?.score}
+                            />
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </Card>
             )}
 
