@@ -27,11 +27,20 @@ export const LecturesPage: React.FC = () => {
 
   const loadData = async () => {
     try {
-      // Load ALL lectures (public access)
-      const { data: lecturesData } = await supabase
+      // Load lectures with class information
+      const { data: lecturesData, error } = await supabase
         .from('lectures')
-        .select('*')
+        .select(`
+          *,
+          classes:class_id (
+            name
+          )
+        `)
         .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading lectures:', error);
+      }
 
       if (lecturesData) {
         setLectures(lecturesData as any);

@@ -38,12 +38,21 @@ export const LecturesPage: React.FC = () => {
 
   const loadData = async () => {
     try {
-      // Load lectures
-      const { data: lecturesData } = await supabase
+      // Load lectures with class information
+      const { data: lecturesData, error } = await supabase
         .from('lectures')
-        .select('*')
+        .select(`
+          *,
+          classes:class_id (
+            name
+          )
+        `)
         .eq('teacher_id', user?.id)
         .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading lectures:', error);
+      }
 
       if (lecturesData) {
         setLectures(lecturesData as any);
