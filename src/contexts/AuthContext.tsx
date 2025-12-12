@@ -39,6 +39,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
 
       if (error) {
+        console.error('Error loading profile:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          userId
+        });
+        
         // If profile doesn't exist (404), return null silently
         if (error.code === 'PGRST116') {
           console.warn('Profile not found for user:', userId);
@@ -47,6 +55,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         throw error;
       }
+      
+      console.log('Profile loaded successfully:', data);
       setProfile(data);
     } catch (error) {
       console.error('Error loading profile:', error);
