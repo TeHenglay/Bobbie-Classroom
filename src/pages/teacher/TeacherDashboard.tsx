@@ -153,7 +153,15 @@ export const TeacherDashboard: React.FC = () => {
 
       console.log('Insert result:', { data, insertError });
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        console.error('Supabase insert error:', {
+          message: insertError.message,
+          details: insertError.details,
+          hint: insertError.hint,
+          code: insertError.code
+        });
+        throw insertError;
+      }
 
       setSuccess(`Class "${formData.name}" created successfully with code: ${classCode}`);
       setShowCreateModal(false);
@@ -162,9 +170,10 @@ export const TeacherDashboard: React.FC = () => {
       
       // Clear success message after 3 seconds
       setTimeout(() => setSuccess(''), 3000);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error creating class:', err);
-      setError(err instanceof Error ? err.message : 'Failed to create class. Please try again.');
+      const errorMessage = err?.message || err?.details || err?.hint || 'Failed to create class. Please try again.';
+      setError(errorMessage);
     } finally {
       setCreating(false);
     }
