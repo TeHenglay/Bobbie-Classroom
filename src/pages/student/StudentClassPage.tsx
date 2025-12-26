@@ -25,12 +25,22 @@ interface Assignment {
   created_at: string;
 }
 
+interface Announcement {
+  id: string;
+  title: string;
+  content: string;
+  created_at: string;
+  class_id: string;
+  teacher_id: string;
+}
+
 export const StudentClassPage: React.FC = () => {
   const { classId } = useParams<{ classId: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [classDetails, setClassDetails] = useState<ClassDetails | null>(null);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [activeTab, setActiveTab] = useState<'stream' | 'assignment' | 'people'>('stream');
   const [assignmentTab, setAssignmentTab] = useState<'Up Coming' | 'Past Due' | 'Completed'>('Up Coming');
   const [loading, setLoading] = useState(true);
@@ -80,6 +90,17 @@ export const StudentClassPage: React.FC = () => {
 
       if (assignmentsData) {
         setAssignments(assignmentsData);
+      }
+
+      // Load announcements
+      const { data: announcementsData } = await supabase
+        .from('announcements')
+        .select('*')
+        .eq('class_id', classId)
+        .order('created_at', { ascending: false });
+
+      if (announcementsData) {
+        setAnnouncements(announcementsData);
       }
 
     } catch (error) {
@@ -203,71 +224,69 @@ export const StudentClassPage: React.FC = () => {
           <div className="lg:col-span-3 space-y-6">
             {/* Stream Tab */}
             {activeTab === 'stream' && (
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-0">
-
-                {/* <!-- Card --> */}
-                <Card className="p-2 shadow-none">
-                  <div className=" bg-white">
-                    <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-yellow-400 flex items-center justify-center text-white font-bold">
-                            J
-                        </div>
-                        <div>
-                            <p className="font-semibold">Meow Meow</p>
-                            <p className="text-sm text-gray-500">Yesterday</p>
-                        </div>
-                    </div>
-
-                    <p className="text-sm text-gray-700 mt-3">
-                        Please complete the Vocabulary section on pages 16–17 about clothes and fashion
-                        parts a–e, and also the attached worksheet before class on Monday.
+              <div className="space-y-6">
+                {announcements.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-20">
+                    <svg className="w-44 h-44 text-gray-300 mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                    </svg>
+                    <h2 className="text-xl font-semibold text-gray-700">No announcements yet</h2>
+                    <p className="text-gray-500 text-sm mt-2 text-center max-w-md">
+                      Your teacher hasn't posted any announcements yet. Check back later!
                     </p>
-
-                    {/* <!-- Attachment Placeholder --> */}
-                    <div className="w-full h-28 bg-gray-200 rounded-md mt-4"></div>
-
-                    {/* <!-- Footer --> */}
-                    <div className="mt-3 flex items-center gap-2 text-blue-600 text-sm cursor-pointer">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V10a2 2 0 012-2h2m2-4h6m-6 0a2 2 0 00-2 2v2h10V6a2 2 0 00-2-2m-6 0h6" />
-                        </svg>
-                        Add comments
-                    </div>
                   </div>
-                </Card>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {announcements.map((announcement) => {
+                      const createdDate = new Date(announcement.created_at);
+                      const now = new Date();
+                      const diffInMs = now.getTime() - createdDate.getTime();
+                      const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+                      const diffInDays = Math.floor(diffInHours / 24);
+                      
+                      let timeAgo = '';
+                      if (diffInDays > 0) {
+                        timeAgo = diffInDays === 1 ? 'Yesterday' : `${diffInDays} days ago`;
+                      } else if (diffInHours > 0) {
+                        timeAgo = `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
+                      } else {
+                        timeAgo = 'Just now';
+                      }
 
-                <Card className="p-2 shadow-none">
-                  <div className=" bg-white">
-                    <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-yellow-400 flex items-center justify-center text-white font-bold">
-                            J
-                        </div>
-                        <div>
-                            <p className="font-semibold">Meow Meow</p>
-                            <p className="text-sm text-gray-500">Yesterday</p>
-                        </div>
-                    </div>
+                      return (
+                        <Card key={announcement.id} className="p-4 shadow-none">
+                          <div className="bg-white">
+                            <div className="flex items-center gap-3">
+                              <div className="h-10 w-10 rounded-full bg-primary-600 flex items-center justify-center text-white font-bold">
+                                T
+                              </div>
+                              <div>
+                                <p className="font-semibold">Teacher</p>
+                                <p className="text-sm text-gray-500">{timeAgo}</p>
+                              </div>
+                            </div>
 
-                    <p className="text-sm text-gray-700 mt-3">
-                        Please complete the Vocabulary section on pages 16–17 about clothes and fashion
-                        parts a–e, and also the attached worksheet before class on Monday.
-                    </p>
+                            {announcement.title && (
+                              <h3 className="font-semibold text-gray-900 mt-3">{announcement.title}</h3>
+                            )}
+                            <p className="text-sm text-gray-700 mt-2">
+                              {announcement.content}
+                            </p>
 
-                    {/* <!-- Attachment Placeholder --> */}
-                    <div className="w-full h-28 bg-gray-200 rounded-md mt-4"></div>
-
-                    {/* <!-- Footer --> */}
-                    <div className="mt-3 flex items-center gap-2 text-blue-600 text-sm cursor-pointer">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V10a2 2 0 012-2h2m2-4h6m-6 0a2 2 0 00-2 2v2h10V6a2 2 0 00-2-2m-6 0h6" />
-                        </svg>
-                        Add comments
-                    </div>
+                            {/* Footer */}
+                            <div className="mt-3 flex items-center gap-2 text-blue-600 text-sm cursor-pointer">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8h2a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V10a2 2 0 012-2h2m2-4h6m-6 0a2 2 0 00-2 2v2h10V6a2 2 0 00-2-2m-6 0h6" />
+                              </svg>
+                              Add comments
+                            </div>
+                          </div>
+                        </Card>
+                      );
+                    })}
                   </div>
-                </Card>
+                )}
               </div>
-
             )}
 
             {/* Classwork Tab */}
