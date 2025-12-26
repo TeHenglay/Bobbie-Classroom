@@ -2,6 +2,8 @@
 
 ![Bobbie Classroom Banner](./public/BOBBIE%20Classroom%20banner.png)
 
+🔗 **Live Demo**: [https://classroom.henglay.tech/](https://classroom.henglay.tech/)
+
 A comprehensive classroom management platform that empowers educators and students with intuitive tools for teaching, learning, and collaboration. Built with React, TypeScript, Tailwind CSS, and Supabase.
 
 ## ✨ Features
